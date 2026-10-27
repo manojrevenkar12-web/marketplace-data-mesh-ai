@@ -20,7 +20,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import sqlglot
 from sqlglot import exp
@@ -136,7 +136,9 @@ class QueryEngine:
                 access[name] = self.policy.table_access(principal, self.registry[name], self.today)
                 if not access[name].visible:
                     c = self.registry[name]
-                    plan.denied.append(Denial(name, None, f"no grant covers {name} (owner {c.owner}); request access in the catalog"))
+                    plan.denied.append(
+                        Denial(name, None, f"no grant covers {name} (owner {c.owner}); request access in the catalog")
+                    )
                 elif name not in plan.tables:
                     plan.tables.append(name)
         if plan.unknown:
@@ -147,7 +149,7 @@ class QueryEngine:
 
         # columns named explicitly must be readable (stars are expanded to readable columns later)
         try:
-            explicit = self._columns(tree, {n: list(self.registry[n].schema()) for n in access}, expand_stars=False)
+            explicit = self._columns(tree, {n: list(self.registry[n].table_schema()) for n in access}, expand_stars=False)
         except sqlglot.errors.OptimizeError as e:
             plan.problems.append(f"the SQL does not resolve: {e}")
             return plan
@@ -155,8 +157,13 @@ class QueryEngine:
             ta = access[product]
             if col in ta.hidden:
                 cls = self.registry[product].column(col)
-                plan.denied.append(Denial(product, col, f"{product}.{col} is {cls.classification if cls else 'restricted'}; "
-                                                        f"your grants do not include it"))
+                plan.denied.append(
+                    Denial(
+                        product,
+                        col,
+                        f"{product}.{col} is {cls.classification if cls else 'restricted'}; your grants do not include it",
+                    )
+                )
             elif col not in ta.columns and col != self.registry[product].partition:
                 plan.problems.append(f"{product} has no column '{col}'")
         if plan.denied:
@@ -187,11 +194,15 @@ class QueryEngine:
             cols = [x for x in plan.columns.get(product, []) if x != c.partition] or c.column_names[:1]
             plan.bytes_scanned += sum(sizes.get(d, {}).get(col, 0) for d in chosen for col in cols)
             if len(chosen) == len(all_parts) and len(all_parts) > int(settings["require_partition_filter_over"]):
-                plan.problems.append(f"{product} has {len(all_parts)} daily partitions; add a filter on {c.partition} "
-                                     f"(for example {c.partition} >= DATE '{all_parts[-1]}' - INTERVAL '7' DAY)")
+                plan.problems.append(
+                    f"{product} has {len(all_parts)} daily partitions; add a filter on {c.partition} "
+                    f"(for example {c.partition} >= DATE '{all_parts[-1]}' - INTERVAL '7' DAY)"
+                )
         plan.cost_usd = plan.bytes_scanned / 1e12 * float(settings["price_usd_per_tb"])
         if plan.bytes_scanned > limit_bytes:
-            plan.problems.append(f"would scan {plan.bytes_scanned / 1e6:.0f} MB, over the {limit_bytes / 1e6:.0f} MB limit for {purpose} queries")
+            plan.problems.append(
+                f"would scan {plan.bytes_scanned / 1e6:.0f} MB, over the {limit_bytes / 1e6:.0f} MB limit for {purpose} queries"
+            )
         plan.duckdb_sql = sqlglot.transpile(sql, read="athena", write="duckdb")[0]
         return plan
 
@@ -212,14 +223,21 @@ class QueryEngine:
 
     # ---------------------------------------------------------------- helpers
 
-    def _columns(self, tree: exp.Expression, tables: dict[str, list[str]], expand_stars: bool) -> set[tuple[str, str]]:
+    def _columns(self, tree: Any, tables: dict[str, list[str]], expand_stars: bool) -> set[tuple[str, str]]:
         schema: dict[str, dict[str, dict[str, str]]] = {}
         for name, cols in tables.items():
             c = self.registry[name]
-            types = c.schema()
+            types = c.table_schema()
             schema.setdefault(c.domain, {})[c.name] = {col: SQL_TYPES.get(types.get(col, "string"), "VARCHAR") for col in cols}
-        q = qualify(tree.copy(), schema=schema, dialect="athena", expand_stars=expand_stars, validate_qualify_columns=False,
-                    identify=False, quote_identifiers=False)
+        q = qualify(
+            tree.copy(),
+            schema=cast(dict[str, object], schema),
+            dialect="athena",
+            expand_stars=expand_stars,
+            validate_qualify_columns=False,
+            identify=False,
+            quote_identifiers=False,
+        )
         out: set[tuple[str, str]] = set()
         for scope in traverse_scope(q):
             for col in scope.columns:
@@ -239,7 +257,7 @@ class QueryEngine:
             self._bytes[product] = (n, self.lake.partition_bytes(product))
         return self._bytes[product][1]
 
-    def _prune(self, tree: exp.Expression, product: str, parts: list[str]) -> list[str]:
+    def _prune(self, tree: Any, product: str, parts: list[str]) -> list[str]:
         """Partitions selected by conjunctive dt predicates on every reference to the table (conservative)."""
         c = self.registry[product]
         chosen_union: set[str] = set()
@@ -269,7 +287,7 @@ class QueryEngine:
         return sorted(chosen_union) if refs else parts
 
 
-def _conjuncts(e: exp.Expression) -> list[exp.Expression]:
+def _conjuncts(e: Any) -> list[Any]:
     if isinstance(e, exp.And):
         return _conjuncts(e.left) + _conjuncts(e.right)
     if isinstance(e, exp.Paren):
@@ -277,7 +295,7 @@ def _conjuncts(e: exp.Expression) -> list[exp.Expression]:
     return [e]
 
 
-def _date_value(e: exp.Expression, today: date | None) -> str | None:
+def _date_value(e: Any, today: date | None) -> str | None:
     if isinstance(e, exp.Cast) and isinstance(e.this, exp.Literal):
         return _iso(e.this.name)
     if isinstance(e, exp.Literal) and e.is_string:
@@ -313,11 +331,11 @@ def _iso(s: str) -> str | None:
         return None
 
 
-def _is_dt(e: exp.Expression, partition: str, alias: str, sole: bool) -> bool:
+def _is_dt(e: Any, partition: str, alias: str, sole: bool) -> bool:
     return isinstance(e, exp.Column) and e.name == partition and (e.table == alias or (not e.table and sole))
 
 
-def _dt_bound(cond: exp.Expression, partition: str, alias: str, sole: bool, today: date | None) -> tuple[str, list[str]] | None:
+def _dt_bound(cond: Any, partition: str, alias: str, sole: bool, today: date | None) -> tuple[str, list[str]] | None:
     ops = {exp.EQ: "eq", exp.GTE: "ge", exp.GT: "gt", exp.LTE: "le", exp.LT: "lt"}
     flip = {"ge": "le", "gt": "lt", "le": "ge", "lt": "gt", "eq": "eq"}
     for klass, op in ops.items():
@@ -330,7 +348,10 @@ def _dt_bound(cond: exp.Expression, partition: str, alias: str, sole: bool, toda
         lo, hi = _date_value(cond.args["low"], today), _date_value(cond.args["high"], today)
         if lo and hi:
             # two bounds; represented as an inclusive range through ge/le handled by the caller twice
-            return "eq", [(date.fromisoformat(lo) + timedelta(i)).isoformat() for i in range((date.fromisoformat(hi) - date.fromisoformat(lo)).days + 1)]
+            return "eq", [
+                (date.fromisoformat(lo) + timedelta(i)).isoformat()
+                for i in range((date.fromisoformat(hi) - date.fromisoformat(lo)).days + 1)
+            ]
     if isinstance(cond, exp.In) and _is_dt(cond.this, partition, alias, sole):
         vals = [_date_value(v, today) for v in cond.expressions]
         if vals and all(vals):

@@ -24,20 +24,35 @@ def tag_assignments(registry: Registry) -> list[dict[str, Any]]:
     out = []
     for c in registry:
         db = database_name(c.domain)
-        out.append({"Resource": {"Table": {"DatabaseName": db, "Name": c.name}}, "LFTags": [{"TagKey": "domain", "TagValues": [c.domain]}]})
+        out.append(
+            {
+                "Resource": {"Table": {"DatabaseName": db, "Name": c.name}},
+                "LFTags": [{"TagKey": "domain", "TagValues": [c.domain]}],
+            }
+        )
         by_cls: dict[str, list[str]] = {}
         for col in c.columns:
             by_cls.setdefault(col.classification, []).append(col.name)
         for cls, cols in sorted(by_cls.items()):
-            out.append({"Resource": {"TableWithColumns": {"DatabaseName": db, "Name": c.name, "ColumnNames": cols}},
-                        "LFTags": [{"TagKey": "sensitivity", "TagValues": [cls]}]})
+            out.append(
+                {
+                    "Resource": {"TableWithColumns": {"DatabaseName": db, "Name": c.name, "ColumnNames": cols}},
+                    "LFTags": [{"TagKey": "sensitivity", "TagValues": [cls]}],
+                }
+            )
         # the partition column is readable by anyone who can read any column of the table
-        out.append({"Resource": {"TableWithColumns": {"DatabaseName": db, "Name": c.name, "ColumnNames": [c.partition]}},
-                    "LFTags": [{"TagKey": "sensitivity", "TagValues": ["public"]}]})
+        out.append(
+            {
+                "Resource": {"TableWithColumns": {"DatabaseName": db, "Name": c.name, "ColumnNames": [c.partition]}},
+                "LFTags": [{"TagKey": "sensitivity", "TagValues": ["public"]}],
+            }
+        )
     return out
 
 
-def grant_entries(policy: AccessPolicy, registry: Registry, role_arn: dict[str, str], account_id: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def grant_entries(
+    policy: AccessPolicy, registry: Registry, role_arn: dict[str, str], account_id: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """(batch_grant_permissions entries, create_data_cells_filter requests)."""
     entries: list[dict[str, Any]] = []
     filters: list[dict[str, Any]] = []
@@ -56,18 +71,48 @@ def grant_entries(policy: AccessPolicy, registry: Registry, role_arn: dict[str, 
                         continue
                     cols = [col.name for col in c.columns if col.classification in sens]
                     fname = f"{name}-{c.domain}-{c.name}-{i}"[:255]
-                    filters.append({"TableData": {"TableCatalogId": account_id, "DatabaseName": database_name(c.domain), "TableName": c.name,
-                                                  "Name": fname, "RowFilter": {"FilterExpression": g.row_filter}, "ColumnNames": [*cols, c.partition]}})
-                    entries.append({"Id": f"{name}-{i}-{c.domain}-{c.name}"[:255], "Principal": {"DataLakePrincipalIdentifier": arn},
-                                    "Resource": {"DataCellsFilter": {"TableCatalogId": account_id, "DatabaseName": database_name(c.domain),
-                                                                     "TableName": c.name, "Name": fname}},
-                                    "Permissions": ["SELECT"]})
+                    filters.append(
+                        {
+                            "TableData": {
+                                "TableCatalogId": account_id,
+                                "DatabaseName": database_name(c.domain),
+                                "TableName": c.name,
+                                "Name": fname,
+                                "RowFilter": {"FilterExpression": g.row_filter},
+                                "ColumnNames": [*cols, c.partition],
+                            }
+                        }
+                    )
+                    entries.append(
+                        {
+                            "Id": f"{name}-{i}-{c.domain}-{c.name}"[:255],
+                            "Principal": {"DataLakePrincipalIdentifier": arn},
+                            "Resource": {
+                                "DataCellsFilter": {
+                                    "TableCatalogId": account_id,
+                                    "DatabaseName": database_name(c.domain),
+                                    "TableName": c.name,
+                                    "Name": fname,
+                                }
+                            },
+                            "Permissions": ["SELECT"],
+                        }
+                    )
                 continue
-            entries.append({
-                "Id": f"{name}-{i}"[:255],
-                "Principal": {"DataLakePrincipalIdentifier": arn},
-                "Resource": {"LFTagPolicy": {"ResourceType": "TABLE", "Expression": [
-                    {"TagKey": "domain", "TagValues": domains}, {"TagKey": "sensitivity", "TagValues": sens}]}},
-                "Permissions": ["SELECT", "DESCRIBE"],
-            })
+            entries.append(
+                {
+                    "Id": f"{name}-{i}"[:255],
+                    "Principal": {"DataLakePrincipalIdentifier": arn},
+                    "Resource": {
+                        "LFTagPolicy": {
+                            "ResourceType": "TABLE",
+                            "Expression": [
+                                {"TagKey": "domain", "TagValues": domains},
+                                {"TagKey": "sensitivity", "TagValues": sens},
+                            ],
+                        }
+                    },
+                    "Permissions": ["SELECT", "DESCRIBE"],
+                }
+            )
     return entries, filters

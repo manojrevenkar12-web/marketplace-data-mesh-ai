@@ -24,8 +24,41 @@ from mesh.lake import Lake
 from mesh.state import State
 
 _TOKEN = re.compile(r"[a-z0-9äöüß]+")
-STOP = {"the", "a", "an", "of", "for", "in", "on", "by", "per", "and", "or", "to", "is", "are", "how", "many", "what",
-        "which", "was", "were", "with", "from", "each", "did", "do", "does", "show", "me", "give", "list", "der", "die", "das"}
+STOP = {
+    "the",
+    "a",
+    "an",
+    "of",
+    "for",
+    "in",
+    "on",
+    "by",
+    "per",
+    "and",
+    "or",
+    "to",
+    "is",
+    "are",
+    "how",
+    "many",
+    "what",
+    "which",
+    "was",
+    "were",
+    "with",
+    "from",
+    "each",
+    "did",
+    "do",
+    "does",
+    "show",
+    "me",
+    "give",
+    "list",
+    "der",
+    "die",
+    "das",
+}
 
 
 def tokens(text: str) -> list[str]:
@@ -80,8 +113,15 @@ class Hit:
 
 
 class Catalog:
-    def __init__(self, registry: Registry, policy: AccessPolicy, lake: Lake, state: State | None = None,
-                 glossary: dict[str, Any] | None = None, today: date | None = None):
+    def __init__(
+        self,
+        registry: Registry,
+        policy: AccessPolicy,
+        lake: Lake,
+        state: State | None = None,
+        glossary: dict[str, Any] | None = None,
+        today: date | None = None,
+    ):
         self.registry = registry
         self.policy = policy
         self.lake = lake
@@ -98,18 +138,38 @@ class Catalog:
         latest = parts[-1] if parts else None
         sc = screen(c.description)
         cols = [
-            {"name": col.name, "type": col.type, "description": screen(col.description).text, "classification": col.classification,
-             "required": col.required, "deprecated_on": str(col.deprecated_on) if col.deprecated_on else None}
-            for col in c.columns if col.name in ta.columns
+            {
+                "name": col.name,
+                "type": col.type,
+                "description": screen(col.description).text,
+                "classification": col.classification,
+                "required": col.required,
+                "deprecated_on": str(col.deprecated_on) if col.deprecated_on else None,
+            }
+            for col in c.columns
+            if col.name in ta.columns
         ]
         flagged = sc.flagged + [f for col in c.columns for f in screen(col.description).flagged]
         return Entry(
-            product=product, domain=c.domain, owner=c.owner, owner_contact=c.owner_contact, kind=c.kind,
-            description=sc.text, tags=c.tags, columns=cols if ta.visible else [], hidden_columns=len(ta.hidden) if ta.visible else len(c.columns),
-            row_filter=ta.row_filter, partition=c.partition, latest_dt=latest if ta.visible else None,
-            partitions=len(parts) if ta.visible else 0, freshness=self._freshness(c, latest) if ta.visible else "unknown",
-            quality=self._quality(c, latest) if ta.visible else "unknown", inputs=c.inputs, consumers=self.registry.consumers(product),
-            flagged_text=flagged, visible=ta.visible,
+            product=product,
+            domain=c.domain,
+            owner=c.owner,
+            owner_contact=c.owner_contact,
+            kind=c.kind,
+            description=sc.text,
+            tags=c.tags,
+            columns=cols if ta.visible else [],
+            hidden_columns=len(ta.hidden) if ta.visible else len(c.columns),
+            row_filter=ta.row_filter,
+            partition=c.partition,
+            latest_dt=latest if ta.visible else None,
+            partitions=len(parts) if ta.visible else 0,
+            freshness=self._freshness(c, latest) if ta.visible else "unknown",
+            quality=self._quality(c, latest) if ta.visible else "unknown",
+            inputs=c.inputs,
+            consumers=self.registry.consumers(product),
+            flagged_text=flagged,
+            visible=ta.visible,
         )
 
     def entries(self, principal: str) -> list[Entry]:
@@ -118,7 +178,9 @@ class Catalog:
     def _freshness(self, c: Contract, latest: str | None) -> str:
         if latest is None:
             return "no data"
-        now = datetime.combine(self.today or date.today(), datetime.min.time()) + timedelta(hours=config.platform()["freshness"]["check_at_hour_utc"])
+        now = datetime.combine(self.today or date.today(), datetime.min.time()) + timedelta(
+            hours=config.platform()["freshness"]["check_at_hour_utc"]
+        )
         # a partition for day D is complete at the end of D; its age is measured from then
         age_h = (now - (datetime.fromisoformat(latest) + timedelta(days=1))).total_seconds() / 3600
         return "fresh" if age_h <= c.sla.freshness_hours else "late"
@@ -186,4 +248,7 @@ class Catalog:
         return [h for h in hits if h.entry.visible][:k], [h for h in hits if not h.entry.visible][:3]
 
     def glossary_text(self) -> str:
-        return "\n".join(f"- {g['term']} ({', '.join(g.get('also', []))}): {g['means']} -> {', '.join(g.get('products', []))}" for g in self.glossary)
+        return "\n".join(
+            f"- {g['term']} ({', '.join(g.get('also', []))}): {g['means']} -> {', '.join(g.get('products', []))}"
+            for g in self.glossary
+        )

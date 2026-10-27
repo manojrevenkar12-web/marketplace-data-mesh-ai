@@ -39,8 +39,15 @@ class Platform:
     today: date
 
     @classmethod
-    def load(cls, data: Path | None = None, router: ModelRouter | None = None, today: date | None = None,
-             registry: Registry | None = None, policy: AccessPolicy | None = None, models: Path | None = None) -> Platform:
+    def load(
+        cls,
+        data: Path | None = None,
+        router: ModelRouter | None = None,
+        today: date | None = None,
+        registry: Registry | None = None,
+        policy: AccessPolicy | None = None,
+        models: Path | None = None,
+    ) -> Platform:
         data = data or config.data_dir()
         registry = registry or Registry.load()
         policy = policy or AccessPolicy()
@@ -56,7 +63,16 @@ class Platform:
         engine = QueryEngine(registry, policy, lake, today=today)
         clf = TriageClassifier.load((models or data / "models") / "triage.pkl")
         return cls(
-            registry=registry, policy=policy, lake=lake, state=state, versions=versions, catalog=catalog, engine=engine, router=router,
-            asker=Asker(catalog, engine, router, state), triage=Triage(state, versions, router, clf),
-            reviewer=Reviewer(registry, policy, lake, router, today), today=today,
+            registry=registry,
+            policy=policy,
+            lake=lake,
+            state=state,
+            versions=versions,
+            catalog=catalog,
+            engine=engine,
+            router=router,
+            asker=Asker(catalog, engine, router, state),
+            triage=Triage(state, versions, router, clf),
+            reviewer=Reviewer(registry, policy, lake, router, today),
+            today=today,
         )

@@ -25,14 +25,19 @@ def test_row_filters_apply_only_when_every_matching_grant_is_filtered():
     reg, pol = Registry.load(), AccessPolicy()
     success = pol.table_access("dealer-success-de", reg["leads.leads"])
     assert success.row_filter == "(country = 'DE')" and "buyer_email" in success.columns
-    assert pol.table_access("dealer-success-de", reg["listings.listing_events"]).row_filter is None  # unfiltered grant on listings
+    assert (
+        pol.table_access("dealer-success-de", reg["listings.listing_events"]).row_filter is None
+    )  # unfiltered grant on listings
     pol.add_grant("dealer-success-de", Grant(None, ("public",)))  # an extra unfiltered grant lifts the filter
     assert pol.table_access("dealer-success-de", reg["leads.leads"]).row_filter is None
 
 
 def test_access_request_grants_expire():
     reg, pol = Registry.load(), AccessPolicy()
-    pol.add_grant("partner-reporting", Grant(None, ("public",), products=("dealers.dealers",), source="request:7", expires=date(2026, 9, 30)))
+    pol.add_grant(
+        "partner-reporting",
+        Grant(None, ("public",), products=("dealers.dealers",), source="request:7", expires=date(2026, 9, 30)),
+    )
     assert pol.table_access("partner-reporting", reg["dealers.dealers"], on=date(2026, 9, 1)).columns == ("country", "dt")
     assert not pol.table_access("partner-reporting", reg["dealers.dealers"], on=date(2026, 9, 30) + timedelta(1)).visible
     assert pol.principal_of("anna.analyst") == "analysts-marketplace"

@@ -20,7 +20,16 @@ def payload(result):  # type: ignore[no-untyped-def]
 async def test_tools_act_as_the_engineer_and_respect_their_grants(platform):
     async with Client(build_server(platform, "anna.analyst")) as c:
         names = {t.name for t in (await c.list_tools()).tools}
-        assert {"search_datasets", "describe_dataset", "run_query", "ask", "check_contract", "review_change", "diagnose_run", "lineage"} <= names
+        assert {
+            "search_datasets",
+            "describe_dataset",
+            "run_query",
+            "ask",
+            "check_contract",
+            "review_change",
+            "diagnose_run",
+            "lineage",
+        } <= names
         found = payload(await c.call_tool("search_datasets", {"query": "Händler Paket"}))
         assert found["datasets"][0]["product"] == "dealers.dealers"
         desc = payload(await c.call_tool("describe_dataset", {"product": "dealers.dealers"}))
@@ -28,7 +37,11 @@ async def test_tools_act_as_the_engineer_and_respect_their_grants(platform):
         dt = platform.lake.partitions("leads.leads")[-1]
         denied = payload(await c.call_tool("run_query", {"sql": f"SELECT buyer_email FROM leads.leads WHERE dt = DATE '{dt}'"}))
         assert denied["ok"] is False and denied["plan"]["denied"][0]["column"] == "buyer_email"
-        rows = payload(await c.call_tool("run_query", {"sql": f"SELECT channel, count(*) AS n FROM leads.leads WHERE dt = DATE '{dt}' GROUP BY channel"}))
+        rows = payload(
+            await c.call_tool(
+                "run_query", {"sql": f"SELECT channel, count(*) AS n FROM leads.leads WHERE dt = DATE '{dt}' GROUP BY channel"}
+            )
+        )
         assert rows["ok"] and {r[0] for r in rows["rows"]} <= {"email", "call", "chat"}
     async with Client(build_server(platform, "max.partner")) as c:
         found = payload(await c.call_tool("search_datasets", {"query": "dealer tier"}))
@@ -42,8 +55,16 @@ async def test_contract_and_change_tools(platform):
         assert ok["ok"] and ok["problems"] == []
         bad = payload(await c.call_tool("check_contract", {"contract_yaml": text.replace("type: timestamp", "type: datetime")}))
         assert not bad["ok"] and bad["problems"][0]["rule"] == "type"
-        review = payload(await c.call_tool("review_change", {"files": [{"path": "products/leads/leads.yaml",
-                                                                        "new": text.replace("name: dealer_id", "name: seller_dealer_id")}]}))
+        review = payload(
+            await c.call_tool(
+                "review_change",
+                {
+                    "files": [
+                        {"path": "products/leads/leads.yaml", "new": text.replace("name: dealer_id", "name: seller_dealer_id")}
+                    ]
+                },
+            )
+        )
         assert review["verdict"] == "block" and "leads.dealer_lead_performance" in review["comment_markdown"]
         failed = payload(await c.call_tool("failed_runs", {}))
         if failed:

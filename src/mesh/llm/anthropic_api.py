@@ -36,7 +36,12 @@ def _message(m: Message) -> dict[str, Any]:
             import json
 
             out.append(
-                {"type": "tool_result", "tool_use_id": b.tool_use_id, "content": json.dumps(b.content, default=str), "is_error": b.is_error}
+                {
+                    "type": "tool_result",
+                    "tool_use_id": b.tool_use_id,
+                    "content": json.dumps(b.content, default=str),
+                    "is_error": b.is_error,
+                }
             )
     return {"role": m.role, "content": out}
 
@@ -59,7 +64,9 @@ class AnthropicProvider:
             r = await self.client.messages.create(**to_messages_api(req, model))
         except anthropic.APIStatusError as e:
             raise ProviderError(
-                f"anthropic {e.status_code}", retryable=e.status_code in (408, 409, 429, 500, 502, 503, 529), code=f"http_{e.status_code}"
+                f"anthropic {e.status_code}",
+                retryable=e.status_code in (408, 409, 429, 500, 502, 503, 529),
+                code=f"http_{e.status_code}",
             ) from e
         except anthropic.APIConnectionError as e:
             raise ProviderError("anthropic connection", retryable=True, code="transport") from e

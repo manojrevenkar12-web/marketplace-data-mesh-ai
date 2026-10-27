@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import json
 import time
-from decimal import Decimal
 from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Any, Literal
 
 from mesh.ai.catalog import Catalog, Hit
@@ -28,7 +28,15 @@ from mesh.query import Plan, QueryEngine
 from mesh.state import State
 
 Status = Literal["answered", "denied", "not_answerable", "rejected", "unavailable"]
-FIXABLE = ("does not parse", "has no column", "unknown table", "add a filter on", "would scan", "does not resolve", "send exactly one")
+FIXABLE = (
+    "does not parse",
+    "has no column",
+    "unknown table",
+    "add a filter on",
+    "would scan",
+    "does not resolve",
+    "send exactly one",
+)
 
 
 @dataclass
@@ -72,7 +80,9 @@ def _parse(resp: ModelResponse) -> QueryDraft:
 
 
 class Asker:
-    def __init__(self, catalog: Catalog, engine: QueryEngine, router: ModelRouter, state: State | None = None, max_datasets: int = 4):
+    def __init__(
+        self, catalog: Catalog, engine: QueryEngine, router: ModelRouter, state: State | None = None, max_datasets: int = 4
+    ):
         self.catalog = catalog
         self.engine = engine
         self.router = router
@@ -83,15 +93,32 @@ class Asker:
         t0 = time.perf_counter()
         principal = self.catalog.policy.principal_of(user)
         hits, restricted_hits = self.catalog.search(question, principal, k=self.max_datasets)
-        restricted = [{"product": h.entry.product, "owner": h.entry.owner, "owner_contact": h.entry.owner_contact} for h in restricted_hits]
-        ans = Answer(question, user, principal, "not_answerable", "", restricted=restricted,
-                     flagged_metadata=sorted({f for h in hits for f in h.entry.flagged_text}))
+        restricted = [
+            {"product": h.entry.product, "owner": h.entry.owner, "owner_contact": h.entry.owner_contact} for h in restricted_hits
+        ]
+        ans = Answer(
+            question,
+            user,
+            principal,
+            "not_answerable",
+            "",
+            restricted=restricted,
+            flagged_metadata=sorted({f for h in hits for f in h.entry.flagged_text}),
+        )
         if not hits:
             ans.status = "denied" if restricted else "not_answerable"
             ans.message = self._no_data_message(restricted)
             return self._done(ans, t0)
-        ans.datasets = [{"product": h.entry.product, "owner": h.entry.owner, "latest_dt": h.entry.latest_dt, "freshness": h.entry.freshness,
-                         "quality": h.entry.quality} for h in hits]
+        ans.datasets = [
+            {
+                "product": h.entry.product,
+                "owner": h.entry.owner,
+                "latest_dt": h.entry.latest_dt,
+                "freshness": h.entry.freshness,
+                "quality": h.entry.quality,
+            }
+            for h in hits
+        ]
         latest = max((h.entry.latest_dt for h in hits if h.entry.latest_dt), default=None)
         prompt = load("ask_sql")
         user_text = prompt.render_user(
@@ -105,14 +132,25 @@ class Asker:
         draft: QueryDraft | None = None
         plan: Plan | None = None
         for round_ in range(2):
-            req = ModelRequest(task="ask_sql", system=prompt.system, messages=messages, tools=[RECORD_QUERY], tool_choice="record_query",
-                               max_tokens=1500, prompt_id=prompt.id, prompt_version=prompt.version, data_scope="internal")
+            req = ModelRequest(
+                task="ask_sql",
+                system=prompt.system,
+                messages=messages,
+                tools=[RECORD_QUERY],
+                tool_choice="record_query",
+                max_tokens=1500,
+                prompt_id=prompt.id,
+                prompt_version=prompt.version,
+                data_scope="internal",
+            )
             try:
                 routed = await self.router.call(req, _parse, budget)
             except Unavailable as e:
                 ans.status = "unavailable"
-                ans.message = ("The assistant is not available right now. These datasets match your question; you can query them "
-                               "directly: " + ", ".join(h.entry.product for h in hits))
+                ans.message = (
+                    "The assistant is not available right now. These datasets match your question; you can query them "
+                    "directly: " + ", ".join(h.entry.product for h in hits)
+                )
                 ans.explanation = str(e)
                 return self._done(ans, t0, budget)
             draft = routed.value
@@ -123,11 +161,16 @@ class Asker:
                 partly = [h.entry for h in hits if h.entry.hidden_columns]
                 hint = ""
                 if partly and not restricted:
-                    e = partly[0]
-                    hint = (f" {e.product} has {e.hidden_columns} column(s) your grants do not include; if you need them, request access "
-                            f"from {e.owner} ({e.owner_contact}).")
-                ans.message = (draft.explanation or "The datasets you can read do not answer this.") + hint + (
-                    " " + self._no_data_message(restricted) if restricted else "")
+                    ent = partly[0]
+                    hint = (
+                        f" {ent.product} has {ent.hidden_columns} column(s) your grants do not include; if you need them, request access "
+                        f"from {ent.owner} ({ent.owner_contact})."
+                    )
+                ans.message = (
+                    (draft.explanation or "The datasets you can read do not answer this.")
+                    + hint
+                    + (" " + self._no_data_message(restricted) if restricted else "")
+                )
                 return self._done(ans, t0, budget)
             plan = self.engine.plan(draft.sql, principal, "assistant")
             if plan.ok:
@@ -135,11 +178,26 @@ class Asker:
             if plan.denied or not any(any(f in p for f in FIXABLE) for p in plan.problems) or round_ == 1:
                 break
             ans.repairs += 1
-            messages = [*messages, Message("assistant", routed.response.tool_uses()), Message("user", [
-                Block("tool_result", tool_use_id=routed.response.tool_uses()[0].tool_use_id,
-                      content={"rejected": plan.problems}, is_error=True),
-                Block.t("The platform rejected this query: " + "; ".join(plan.problems) + ". Call record_query again with a corrected query."),
-            ])]
+            messages = [
+                *messages,
+                Message("assistant", routed.response.tool_uses()),
+                Message(
+                    "user",
+                    [
+                        Block(
+                            "tool_result",
+                            tool_use_id=routed.response.tool_uses()[0].tool_use_id,
+                            content={"rejected": plan.problems},
+                            is_error=True,
+                        ),
+                        Block.t(
+                            "The platform rejected this query: "
+                            + "; ".join(plan.problems)
+                            + ". Call record_query again with a corrected query."
+                        ),
+                    ],
+                ),
+            ]
         assert draft is not None and plan is not None
         ans.sql, ans.explanation, ans.assumptions = draft.sql, draft.explanation, draft.assumptions
         ans.plan = plan.summary()
@@ -147,8 +205,9 @@ class Asker:
             if plan.denied:
                 # the model was never shown these columns or tables: it guessed, or obeyed text in the metadata
                 ans.status = "rejected"
-                ans.message = ("The drafted query asked for data your grants do not include, so it was not run: "
-                               + "; ".join(d.reason for d in plan.denied))
+                ans.message = "The drafted query asked for data your grants do not include, so it was not run: " + "; ".join(
+                    d.reason for d in plan.denied
+                )
             else:
                 ans.status = "rejected"
                 ans.message = "The drafted query could not run: " + "; ".join(plan.problems)
@@ -160,22 +219,35 @@ class Asker:
         as_of = ", ".join(sorted({d["latest_dt"] for d in ans.datasets if d["product"] in plan.tables and d["latest_dt"]}))
         filt = f" Only rows you may see are included ({'; '.join(plan.row_filters.values())})." if plan.row_filters else ""
         empty = " No rows matched; check the period against the data's latest day." if not result.rows else ""
-        ans.message = f"{draft.explanation} From {tables}, data as of {as_of}; scanned {plan.bytes_scanned / 1e6:.1f} MB.{filt}{empty}"
+        ans.message = (
+            f"{draft.explanation} From {tables}, data as of {as_of}; scanned {plan.bytes_scanned / 1e6:.1f} MB.{filt}{empty}"
+        )
         return self._done(ans, t0, budget)
 
     def _no_data_message(self, restricted: list[dict[str, Any]]) -> str:
         if restricted:
             r = restricted[0]
-            return (f"The data you need is likely in {r['product']}, owned by {r['owner']} ({r['owner_contact']}); your grants do not "
-                    f"include it. Request access from the catalog page and the owner will decide.")
+            return (
+                f"The data you need is likely in {r['product']}, owned by {r['owner']} ({r['owner_contact']}); your grants do not "
+                f"include it. Request access from the catalog page and the owner will decide."
+            )
         return "No dataset you can read matches this question. Try different words, or ask in #data-help."
 
     def _done(self, ans: Answer, t0: float, budget: Budget | None = None) -> Answer:
         ans.elapsed_ms = int((time.perf_counter() - t0) * 1000)
         ans.cost_usd = round(budget.spent_usd, 6) if budget else 0.0
         if self.state is not None:
-            self.state.add_usage({"feature": "ask", "user": ans.user, "status": ans.status, "repairs": ans.repairs,
-                                  "cost_usd": ans.cost_usd, "ms": ans.elapsed_ms, "tables": ans.plan.get("tables", [])})
+            self.state.add_usage(
+                {
+                    "feature": "ask",
+                    "user": ans.user,
+                    "status": ans.status,
+                    "repairs": ans.repairs,
+                    "cost_usd": ans.cost_usd,
+                    "ms": ans.elapsed_ms,
+                    "tables": ans.plan.get("tables", []),
+                }
+            )
         return ans
 
 

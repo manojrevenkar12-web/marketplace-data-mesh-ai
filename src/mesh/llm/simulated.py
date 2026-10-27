@@ -51,15 +51,27 @@ class SimulatedProvider:
     def _tool(self, req: ModelRequest, payload: dict[str, Any], text: str) -> ModelResponse:
         name = req.tool_choice if req.tool_choice not in ("auto", "any") else req.tools[0].name
         out = len(str(payload)) // 4 + 20
-        return ModelResponse([Block("tool_use", tool_use_id=f"sim-{self.calls}", name=name, input=payload)], "tool_use",
-                             Usage(len(req.system + text) // 4, out), "simulated-v1", "simulated", latency_ms=5.0)
+        return ModelResponse(
+            [Block("tool_use", tool_use_id=f"sim-{self.calls}", name=name, input=payload)],
+            "tool_use",
+            Usage(len(req.system + text) // 4, out),
+            "simulated-v1",
+            "simulated",
+            latency_ms=5.0,
+        )
 
     # ---------------------------------------------------------------- tasks
 
     def _ask(self, first: str, text: str, key: str, repair: bool) -> dict[str, Any]:
         d = sim_sql.draft(first)
-        payload: dict[str, Any] = {"answerable": d.answerable, "sql": d.sql, "tables": d.tables or [], "explanation": d.explanation,
-                                   "missing": d.missing, "assumptions": []}
+        payload: dict[str, Any] = {
+            "answerable": d.answerable,
+            "sql": d.sql,
+            "tables": d.tables or [],
+            "explanation": d.explanation,
+            "missing": d.missing,
+            "assumptions": [],
+        }
         if not d.answerable:
             return payload
         if repair:
@@ -74,7 +86,11 @@ class SimulatedProvider:
         if planted and self._fault("obey_injection", key):
             col = planted[0]
             payload["sql"] = re.sub(r"^SELECT ", f"SELECT {col}, ", payload["sql"], count=1)
-            payload["sql"] = re.sub(r" GROUP BY (\w+)", rf" GROUP BY \1, {col}", payload["sql"]) if " GROUP BY " in payload["sql"] else payload["sql"]
+            payload["sql"] = (
+                re.sub(r" GROUP BY (\w+)", rf" GROUP BY \1, {col}", payload["sql"])
+                if " GROUP BY " in payload["sql"]
+                else payload["sql"]
+            )
         if self._fault("hallucinate", key):
             for real, fake in (("price_eur", "price"), ("country", "market"), ("make", "brand"), ("lead_id", "lead_count")):
                 if real in payload["sql"]:
@@ -98,17 +114,23 @@ class SimulatedProvider:
             cited = [*cited, "E99"]
             summary += " The upstream team announced this change last week in #data-announce."
         run = re.search(r"Failed run: (\S+)", first)
-        return {"category": cat, "evidence": cited, "summary": f"{run.group(1) if run else 'The run'}: {summary}",
-                "next_steps": ["Follow the runbook step for this category.", "Re-run the day once the cause is fixed."]}
+        return {
+            "category": cat,
+            "evidence": cited,
+            "summary": f"{run.group(1) if run else 'The run'}: {summary}",
+            "next_steps": ["Follow the runbook step for this category.", "Re-run the day once the cause is fixed."],
+        }
 
     def _review(self, first: str, text: str, key: str, repair: bool) -> dict[str, Any]:
         findings = re.findall(r"^- (F\d+) \[(\w+)\] (.*)$", first, re.M)
         verdict = re.search(r"Verdict \(decided by the platform\): (\w+)", first)
         v = verdict.group(1) if verdict else "approve"
         notes = [{"finding": f, "note": detail} for f, _sev, detail in findings]
-        summary = {"block": "This change would break consumers or bypass governance as it stands.",
-                   "needs_approval": "This change is safe to merge once the named owners approve.",
-                   "approve": "No consumer is affected by this change."}.get(v, "")
+        summary = {
+            "block": "This change would break consumers or bypass governance as it stands.",
+            "needs_approval": "This change is safe to merge once the named owners approve.",
+            "approve": "No consumer is affected by this change.",
+        }.get(v, "")
         if self._fault("hallucinate", key) and not repair:
             summary += " It also breaks finance.revenue_daily, which reads this column."
         blocks = " ".join(d for _f, s, d in findings if s == "block")

@@ -4,6 +4,8 @@ upstream just before this broke"."""
 
 from __future__ import annotations
 
+import itertools
+
 from mesh.contracts import Change, Registry, diff, parse
 from mesh.state import ContractVersion, State
 
@@ -21,13 +23,26 @@ class Versions:
             path = self.base.paths.get(c.product)
             text = path.read_text() if path else ""
             self.state.add_contract_version(
-                ContractVersion(c.product, c.version, effective, text, self.base.sql.get(c.product), author, "initial", f"{effective}T00:00:00Z")
+                ContractVersion(
+                    c.product,
+                    c.version,
+                    effective,
+                    text,
+                    self.base.sql.get(c.product),
+                    author,
+                    "initial",
+                    f"{effective}T00:00:00Z",
+                )
             )
         self._cache = None
 
-    def publish(self, contract_yaml: str, sql: str | None, effective: str, author: str, note: str, published: str = "") -> ContractVersion:
+    def publish(
+        self, contract_yaml: str, sql: str | None, effective: str, author: str, note: str, published: str = ""
+    ) -> ContractVersion:
         c = parse(contract_yaml)
-        v = ContractVersion(c.product, c.version, effective, contract_yaml, sql, author, note, published or f"{effective}T00:00:00Z")
+        v = ContractVersion(
+            c.product, c.version, effective, contract_yaml, sql, author, note, published or f"{effective}T00:00:00Z"
+        )
         self.state.add_contract_version(v)
         self._cache = None
         return v
@@ -60,11 +75,13 @@ class Versions:
                 sql[product] = v.sql
         return Registry(contracts, sql, dict(self.base.paths))
 
-    def changes(self, product: str, since: str, until: str, published_before: str | None = None) -> list[tuple[ContractVersion, list[Change]]]:
+    def changes(
+        self, product: str, since: str, until: str, published_before: str | None = None
+    ) -> list[tuple[ContractVersion, list[Change]]]:
         """Versions that took effect in (since, until], each with what changed against the one before."""
         hs = self.history(product, published_before)
         out = []
-        for prev, cur in zip(hs, hs[1:], strict=False):
+        for prev, cur in itertools.pairwise(hs):
             if since < cur.effective <= until:
                 out.append((cur, diff(parse(prev.contract), parse(cur.contract), prev.sql, cur.sql)))
         return out

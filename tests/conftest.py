@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def small_config() -> dict[str, Any]:
     cfg = yaml.safe_load((ROOT / "config" / "world.yaml").read_text())
-    cfg.update(start="2026-07-01", live_from="2026-07-18", end="2026-08-10", dealers=60, new_listings_per_day=120, burn_in_days=45)
+    cfg.update(
+        start="2026-07-01", live_from="2026-07-18", end="2026-08-10", dealers=60, new_listings_per_day=120, burn_in_days=45
+    )
     cfg["incidents"].update(rate_history=0.55, rate_live=0.55)
     return cfg
 

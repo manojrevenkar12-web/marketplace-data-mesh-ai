@@ -68,8 +68,15 @@ class Log:
 
 
 class Runner:
-    def __init__(self, lake: Lake, state: State, versions: Versions, landing: Path | None = None,
-                 faults: FaultHook | None = None, retries: int = 2):
+    def __init__(
+        self,
+        lake: Lake,
+        state: State,
+        versions: Versions,
+        landing: Path | None = None,
+        faults: FaultHook | None = None,
+        retries: int = 2,
+    ):
         self.lake = lake
         self.state = state
         self.versions = versions
@@ -97,9 +104,22 @@ class Runner:
                 why = f" (last run: {last[-1].status})" if last else " (no run yet)"
                 log("ERROR", "sensor", f"input {i} has no published partition for dt={dt}{why}")
             log("ERROR", "sensor", f"UpstreamNotReady: {', '.join(missing)} not published; {product} not run")
-            return self._record(Run(run_id, product, dt, "upstream_failed", started, log.now, step="sensor",
-                                    error_type="UpstreamNotReady", error=f"inputs not published: {', '.join(missing)}",
-                                    contract_version=c.version, blocked_by=missing), log)
+            return self._record(
+                Run(
+                    run_id,
+                    product,
+                    dt,
+                    "upstream_failed",
+                    started,
+                    log.now,
+                    step="sensor",
+                    error_type="UpstreamNotReady",
+                    error=f"inputs not published: {', '.join(missing)}",
+                    contract_version=c.version,
+                    blocked_by=missing,
+                ),
+                log,
+            )
         attempt = 0
         step = "ingest" if c.kind == "source" else "transform"
         while True:
@@ -113,36 +133,105 @@ class Runner:
                 if e.retryable and attempt <= self.retries:
                     log("WARN", step, f"attempt {attempt} failed; retrying in {30 * attempt}s", seconds=30 * attempt)
                     continue
-                return self._record(Run(run_id, product, dt, "failed", started, log.now, attempt, step,
-                                        e.kind, e.message, contract_version=c.version), log)
+                return self._record(
+                    Run(
+                        run_id,
+                        product,
+                        dt,
+                        "failed",
+                        started,
+                        log.now,
+                        attempt,
+                        step,
+                        e.kind,
+                        e.message,
+                        contract_version=c.version,
+                    ),
+                    log,
+                )
         staged = self.lake.stage(product, dt, table)
-        log("INFO", step, f"staged {table.num_rows} rows to {self.lake.partition_dir(product, dt, staged=True).relative_to(self.lake.root.parent)}")
+        log(
+            "INFO",
+            step,
+            f"staged {table.num_rows} rows to {self.lake.partition_dir(product, dt, staged=True).relative_to(self.lake.root.parent)}",
+        )
         try:
             self._fault(product, dt, "quality", attempt)
         except StepError as e:
             log("ERROR", "quality", f"{e.kind}: {e.message}")
             self.lake.discard(product, dt)
-            return self._record(Run(run_id, product, dt, "failed", started, log.now, attempt, "quality",
-                                    e.kind, e.message, rows=table.num_rows, contract_version=c.version), log)
+            return self._record(
+                Run(
+                    run_id,
+                    product,
+                    dt,
+                    "failed",
+                    started,
+                    log.now,
+                    attempt,
+                    "quality",
+                    e.kind,
+                    e.message,
+                    rows=table.num_rows,
+                    contract_version=c.version,
+                ),
+                log,
+            )
         last_ok = {r.dt: r.rows for r in self.state.runs(product) if r.ok and r.dt < dt}
         previous = [last_ok[d] for d in sorted(last_ok)]
         results = run_checks(c, dt, staged, self.lake, previous)
         self.state.add_quality(results)
         failed = [q for q in results if not q.passed]
         for q in results:
-            log("INFO" if q.passed else ("ERROR" if q.severity == "error" else "WARN"), "quality",
-                f"{'PASS' if q.passed else 'FAIL'} {q.check} ({q.severity}): {q.detail}", seconds=0.2)
+            log(
+                "INFO" if q.passed else ("ERROR" if q.severity == "error" else "WARN"),
+                "quality",
+                f"{'PASS' if q.passed else 'FAIL'} {q.check} ({q.severity}): {q.detail}",
+                seconds=0.2,
+            )
         blocking = [q for q in failed if q.severity == "error"]
         if blocking:
             self.lake.discard(product, dt)
             msg = "; ".join(f"{q.check}: {q.detail}" for q in blocking)
-            log("ERROR", "quality", f"QualityCheckFailed: partition dt={dt} quarantined, not published ({len(blocking)} blocking checks)")
-            return self._record(Run(run_id, product, dt, "quality_failed", started, log.now, attempt, "quality",
-                                    "QualityCheckFailed", msg, rows=table.num_rows, contract_version=c.version), log)
+            log(
+                "ERROR",
+                "quality",
+                f"QualityCheckFailed: partition dt={dt} quarantined, not published ({len(blocking)} blocking checks)",
+            )
+            return self._record(
+                Run(
+                    run_id,
+                    product,
+                    dt,
+                    "quality_failed",
+                    started,
+                    log.now,
+                    attempt,
+                    "quality",
+                    "QualityCheckFailed",
+                    msg,
+                    rows=table.num_rows,
+                    contract_version=c.version,
+                ),
+                log,
+            )
         self.lake.publish(product, dt)
         log("INFO", "publish", f"published dt={dt} ({table.num_rows} rows); registered partition in the catalog")
-        return self._record(Run(run_id, product, dt, "success", started, log.now, attempt, "publish",
-                                rows=table.num_rows, contract_version=c.version), log)
+        return self._record(
+            Run(
+                run_id,
+                product,
+                dt,
+                "success",
+                started,
+                log.now,
+                attempt,
+                "publish",
+                rows=table.num_rows,
+                contract_version=c.version,
+            ),
+            log,
+        )
 
     # ---------------------------------------------------------------- steps
 
@@ -157,11 +246,17 @@ class Runner:
         path = self.landing / c.source.system / c.name / f"{dt}.jsonl"
         log("INFO", "ingest", f"reading s3://mesh-landing/{c.source.system}/{c.name}/{dt}.jsonl")
         if not path.exists():
-            raise StepError("LandingFileNotFound", f"s3://mesh-landing/{c.source.system}/{c.name}/{dt}.jsonl does not exist; "
-                                                   f"{c.source.system} has not delivered the drop for {dt}")
+            raise StepError(
+                "LandingFileNotFound",
+                f"s3://mesh-landing/{c.source.system}/{c.name}/{dt}.jsonl does not exist; "
+                f"{c.source.system} has not delivered the drop for {dt}",
+            )
         try:
-            raw = pajson.read_json(path, read_options=pajson.ReadOptions(block_size=1 << 24),
-                                   parse_options=pajson.ParseOptions(unexpected_field_behavior="infer"))
+            raw = pajson.read_json(
+                path,
+                read_options=pajson.ReadOptions(block_size=1 << 24),
+                parse_options=pajson.ParseOptions(unexpected_field_behavior="infer"),
+            )
         except pa.ArrowInvalid as e:
             raise StepError("MalformedInput", str(e).splitlines()[0]) from e
         log("INFO", "ingest", f"read {raw.num_rows} records with fields {sorted(raw.column_names)}", seconds=3)
@@ -172,8 +267,11 @@ class Runner:
         if unexpected:
             log("WARN", "ingest", f"ignoring fields not in contract v{c.version}: {unexpected}")
         if missing_required:
-            raise StepError("ContractViolation", f"required column(s) {missing_required} missing from {c.source.system} drop; "
-                                                 f"fields not in contract v{c.version}: {unexpected}")
+            raise StepError(
+                "ContractViolation",
+                f"required column(s) {missing_required} missing from {c.source.system} drop; "
+                f"fields not in contract v{c.version}: {unexpected}",
+            )
         arrays = []
         schema = arrow_schema(c)
         for f in schema:
@@ -186,8 +284,11 @@ class Runner:
                 arrays.append(col if col.type == f.type else pc.cast(col, f.type))
             except (pa.ArrowInvalid, pa.ArrowNotImplementedError) as e:
                 sample = next((str(v) for v in col.to_pylist() if v is not None and not _castable(v, f.type)), "?")
-                raise StepError("TypeCastError", f"column '{f.name}' ({col.type}) cannot be read as {c.columns[schema.get_field_index(f.name)].type}: "
-                                                 f"value '{sample}'; {str(e).splitlines()[0]}") from e
+                raise StepError(
+                    "TypeCastError",
+                    f"column '{f.name}' ({col.type}) cannot be read as {c.columns[schema.get_field_index(f.name)].type}: "
+                    f"value '{sample}'; {str(e).splitlines()[0]}",
+                ) from e
         return pa.Table.from_arrays(arrays, schema=schema)
 
     def _transform(self, c: Contract, registry: Registry, dt: str, log: Log) -> pa.Table:

@@ -86,7 +86,9 @@ def cmd_review(a: argparse.Namespace) -> int:
     from mesh.lake import Lake
     from mesh.llm.factory import make_router
 
-    names = [n for n in _git("diff", "--name-only", f"{a.base}...HEAD", "--", "products").split() if n.endswith((".yaml", ".sql"))]
+    names = [
+        n for n in _git("diff", "--name-only", f"{a.base}...HEAD", "--", "products").split() if n.endswith((".yaml", ".sql"))
+    ]
     changes = []
     for n in names:
         try:
@@ -109,7 +111,9 @@ def cmd_review(a: argparse.Namespace) -> int:
             if product:
                 base = base.with_contract(base[product], ch.old)
     lake_root = config.data_dir() / "lake"
-    reviewer = Reviewer(base, AccessPolicy(), Lake(lake_root) if lake_root.exists() else None, None if a.no_model else make_router())
+    reviewer = Reviewer(
+        base, AccessPolicy(), Lake(lake_root) if lake_root.exists() else None, None if a.no_model else make_router()
+    )
     r = asyncio.run(reviewer.review(changes, use_model=not a.no_model))
     if a.format == "json":
         _json(r.as_dict())
@@ -183,7 +187,11 @@ def cmd_infra(a: argparse.Namespace) -> int:
     from mesh.aws.terraform import dumps, render
     from mesh.contracts import Registry
 
-    return _render_check(config.repo_root() / "infra" / "terraform" / "products.auto.tfvars.json", dumps(render(Registry.load(), AccessPolicy())), a.check)
+    return _render_check(
+        config.repo_root() / "infra" / "terraform" / "products.auto.tfvars.json",
+        dumps(render(Registry.load(), AccessPolicy())),
+        a.check,
+    )
 
 
 def cmd_mcp(a: argparse.Namespace) -> int:

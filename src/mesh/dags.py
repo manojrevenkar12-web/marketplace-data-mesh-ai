@@ -58,6 +58,13 @@ with DAG(
 
 
 def render(registry: Registry) -> str:
-    spec = {p: {"inputs": registry[p].inputs, "owner": registry[p].owner, "sla_hours": registry[p].sla.freshness_hours,
-                "version": registry[p].version} for p in registry.order()}
+    spec = {
+        p: {
+            "inputs": registry[p].inputs,
+            "owner": registry[p].owner,
+            "sla_hours": registry[p].sla.freshness_hours,
+            "version": registry[p].version,
+        }
+        for p in registry.order()
+    }
     return TEMPLATE.replace("__PRODUCTS__", json.dumps(spec, indent=4))

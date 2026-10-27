@@ -22,8 +22,9 @@ from mesh import config
 def _old_text(path: Path) -> str | None:
     rel = path.resolve().relative_to(config.repo_root().resolve())
     try:
-        return subprocess.run(["git", "show", f"HEAD:{rel.as_posix()}"], capture_output=True, text=True, check=True,
-                              cwd=config.repo_root()).stdout
+        return subprocess.run(
+            ["git", "show", f"HEAD:{rel.as_posix()}"], capture_output=True, text=True, check=True, cwd=config.repo_root()
+        ).stdout
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
@@ -72,7 +73,9 @@ def _with_old(base: Any, path: Path, old: str) -> Any:
         except Exception:
             return base
         return base.with_contract(c, base.sql.get(c.product))
-    product = next((c.product for c in base if c.transform and Path(c.transform).stem == path.stem and c.domain == path.parent.name), None)
+    product = next(
+        (c.product for c in base if c.transform and Path(c.transform).stem == path.stem and c.domain == path.parent.name), None
+    )
     return base.with_contract(base[product], old) if product else base
 
 

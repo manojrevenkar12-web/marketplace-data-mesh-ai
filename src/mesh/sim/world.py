@@ -139,15 +139,20 @@ class World:
             country = str(self.rng.choice(self.countries, p=self.cweights))
             city = str(self.rng.choice(CITIES[country]))
             name = f"{['Auto', 'Car', 'Motors', 'Garage', 'Autohaus'][i % 5]} {city} {i + 1}"
-            self.dealers.append({
-                "dealer_id": f"D{i + 1:04d}", "dealer_name": name, "country": country, "city": city,
-                "tier": str(self.rng.choice(tiers, p=[0.55, 0.3, 0.15])),
-                "contact_email": f"sales{i + 1}@dealer{i + 1}.example",
-                "contact_phone": f"+{30 + i % 60} {int(self.rng.integers(100, 999))} {int(self.rng.integers(100000, 999999))}",
-                "vat_id": f"{country}{int(self.rng.integers(10**8, 10**9))}",
-                "onboarded_on": (date(2015, 1, 1) + timedelta(int(self.rng.integers(0, 3800)))).isoformat(),
-                "weight": 1.0,
-            })
+            self.dealers.append(
+                {
+                    "dealer_id": f"D{i + 1:04d}",
+                    "dealer_name": name,
+                    "country": country,
+                    "city": city,
+                    "tier": str(self.rng.choice(tiers, p=[0.55, 0.3, 0.15])),
+                    "contact_email": f"sales{i + 1}@dealer{i + 1}.example",
+                    "contact_phone": f"+{30 + i % 60} {int(self.rng.integers(100, 999))} {int(self.rng.integers(100000, 999999))}",
+                    "vat_id": f"{country}{int(self.rng.integers(10**8, 10**9))}",
+                    "onboarded_on": (date(2015, 1, 1) + timedelta(int(self.rng.integers(0, 3800)))).isoformat(),
+                    "weight": 1.0,
+                }
+            )
         for d in self.dealers:
             d["weight"] = {"basic": 1.0, "pro": 2.2, "premium": 4.0}[d["tier"]]
 
@@ -165,10 +170,21 @@ class World:
         def event(lid: str, kind: str) -> dict[str, Any]:
             listing = self.listings[lid]
             self.n_event += 1
-            return {"event_id": f"E{self.n_event:08d}", "listing_id": lid, "dealer_id": listing["dealer_id"],
-                    "seller_type": "dealer" if listing["dealer_id"] else "private", "make": listing["make"], "model": listing["model"],
-                    "first_registration_year": listing["year"], "mileage_km": listing["mileage"], "fuel": listing["fuel"],
-                    "price_eur": listing["price"], "country": listing["country"], "event_type": kind, "event_ts": ts()}
+            return {
+                "event_id": f"E{self.n_event:08d}",
+                "listing_id": lid,
+                "dealer_id": listing["dealer_id"],
+                "seller_type": "dealer" if listing["dealer_id"] else "private",
+                "make": listing["make"],
+                "model": listing["model"],
+                "first_registration_year": listing["year"],
+                "mileage_km": listing["mileage"],
+                "fuel": listing["fuel"],
+                "price_eur": listing["price"],
+                "country": listing["country"],
+                "event_type": kind,
+                "event_ts": ts(),
+            }
 
         # changes to listings already online
         for lid, listing in list(self.listings.items()):
@@ -195,11 +211,19 @@ class World:
             age = int(self.rng.integers(0, 13))
             year = 2026 - age
             mileage = int(max(0, self.rng.normal(14000 * age + 3000, 6000 + 3000 * age)))
-            price = base_price * (0.86 ** age) * float(np.exp(-mileage / 400000)) * float(self.rng.lognormal(0, 0.12))
-            self.listings[lid] = {"dealer_id": dealer["dealer_id"] if dealer else None, "make": make, "model": model, "year": year,
-                                  "mileage": mileage, "fuel": str(self.rng.choice(self.fuels, p=self.fweights)),
-                                  "price": max(500, round(price / 50) * 50), "country": country, "active": True,
-                                  "base": base_price * (0.86 ** age)}
+            price = base_price * (0.86**age) * float(np.exp(-mileage / 400000)) * float(self.rng.lognormal(0, 0.12))
+            self.listings[lid] = {
+                "dealer_id": dealer["dealer_id"] if dealer else None,
+                "make": make,
+                "model": model,
+                "year": year,
+                "mileage": mileage,
+                "fuel": str(self.rng.choice(self.fuels, p=self.fweights)),
+                "price": max(500, round(price / 50) * 50),
+                "country": country,
+                "active": True,
+                "base": base_price * (0.86**age),
+            }
             events.append(event(lid, "created"))
         if not keep:  # burn-in: only the listings' state matters
             for lid in [lid for lid, x in self.listings.items() if not x["active"]]:
@@ -215,10 +239,18 @@ class World:
             for (lid, x), k in zip(active, counts, strict=True):
                 for _ in range(int(k)):
                     self.n_lead += 1
-                    leads.append({"lead_id": f"Q{self.n_lead:08d}", "listing_id": lid, "dealer_id": x["dealer_id"],
-                                  "channel": str(self.rng.choice(channels, p=[0.55, 0.25, 0.2])), "country": x["country"],
-                                  "buyer_email": f"buyer{self.n_lead}@mail.example", "buyer_phone": f"+49 151 {self.n_lead:08d}",
-                                  "created_ts": ts()})
+                    leads.append(
+                        {
+                            "lead_id": f"Q{self.n_lead:08d}",
+                            "listing_id": lid,
+                            "dealer_id": x["dealer_id"],
+                            "channel": str(self.rng.choice(channels, p=[0.55, 0.25, 0.2])),
+                            "country": x["country"],
+                            "buyer_email": f"buyer{self.n_lead}@mail.example",
+                            "buyer_phone": f"+49 151 {self.n_lead:08d}",
+                            "created_ts": ts(),
+                        }
+                    )
         dealers = [{k: v for k, v in d.items() if k != "weight"} for d in self.dealers]
         return {"listings.listing_events": events, "dealers.dealers": dealers, "leads.leads": leads}
 
@@ -269,7 +301,9 @@ class World:
         clean = [dict(r) for r in drops[product]]
         for r in drops[product]:
             r[new] = r.pop(old)
-        inc = self._new("schema_drift", dt, product, OWNERS[product.split(".")[0]], f"{SOURCES[product]} renamed field '{old}' to '{new}'")
+        inc = self._new(
+            "schema_drift", dt, product, OWNERS[product.split(".")[0]], f"{SOURCES[product]} renamed field '{old}' to '{new}'"
+        )
         self.pending_fixes[self._next(dt)].append(("redeliver", dt, product, clean))
         return inc
 
@@ -289,7 +323,9 @@ class World:
 
     def _inject_late_drop(self, dt: str, drops: dict[str, list[dict[str, Any]]]) -> Incident:
         product = self._pick_source()
-        inc = self._new("late_drop", dt, product, OWNERS[product.split(".")[0]], f"{SOURCES[product]} delivered the {dt} drop late")
+        inc = self._new(
+            "late_drop", dt, product, OWNERS[product.split(".")[0]], f"{SOURCES[product]} delivered the {dt} drop late"
+        )
         self.pending_fixes[self._next(dt)].append(("redeliver", dt, product, [dict(r) for r in drops[product]]))
         return inc
 
@@ -321,7 +357,7 @@ class World:
         return inc
 
     def _inject_upstream_contract_change(self, dt: str, drops: dict[str, list[dict[str, Any]]]) -> Incident | None:
-        product, old, new, desc = CONTRACT_RENAMES[int(self.rng.integers(len(CONTRACT_RENAMES)))]
+        product, old, new, _desc = CONTRACT_RENAMES[int(self.rng.integers(len(CONTRACT_RENAMES)))]
         current = self.versions.in_force(product, dt)
         assert current is not None
         data = yaml.safe_load(current.contract)
@@ -334,12 +370,23 @@ class World:
         for q in data.get("quality", []):
             if q.get("column") == old:
                 q["column"] = new
-        self.versions.publish(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), current.sql, dt, OWNERS[product.split(".")[0]],
-                              f"rename {old} to {new}", published=f"{dt}T15:00:00Z")
+        self.versions.publish(
+            yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+            current.sql,
+            dt,
+            OWNERS[product.split(".")[0]],
+            f"rename {old} to {new}",
+            published=f"{dt}T15:00:00Z",
+        )
         for r in drops[product]:
             r[new] = r.pop(old)
-        inc = self._new("upstream_contract_change", dt, product, OWNERS[product.split(".")[0]],
-                        f"contract v{data['version']} renamed '{old}' to '{new}' without deprecating it")
+        inc = self._new(
+            "upstream_contract_change",
+            dt,
+            product,
+            OWNERS[product.split(".")[0]],
+            f"contract v{data['version']} renamed '{old}' to '{new}' without deprecating it",
+        )
         self.pending_fixes[self._next(dt)].append(("revert_contract", product, current, dt, old, new))
         return inc
 
@@ -348,8 +395,14 @@ class World:
         current = self.versions.in_force(product, dt)
         assert current is not None and current.sql is not None
         old, new = CODE_BUGS[product]
-        self.versions.publish(current.contract, current.sql.replace(old, new, 1), dt, OWNERS[product.split(".")[0]], "refactor transform",
-                              published=f"{dt}T15:00:00Z")
+        self.versions.publish(
+            current.contract,
+            current.sql.replace(old, new, 1),
+            dt,
+            OWNERS[product.split(".")[0]],
+            "refactor transform",
+            published=f"{dt}T15:00:00Z",
+        )
         inc = self._new("code_change", dt, product, OWNERS[product.split(".")[0]], f"transform edited: '{old}' became '{new}'")
         self.pending_fixes[self._next(dt)].append(("revert_sql", product, current, dt))
         return inc
@@ -361,41 +414,80 @@ class World:
         return inc
 
     def _inject_access_denied(self, dt: str, drops: dict[str, list[dict[str, Any]]]) -> Incident:
-        product = str(self.rng.choice(["leads.dealer_lead_performance", "pricing.price_ratings", "listings.active_listings_daily", "dealers.dealers"]))
+        product = str(
+            self.rng.choice(
+                ["leads.dealer_lead_performance", "pricing.price_ratings", "listings.active_listings_daily", "dealers.dealers"]
+            )
+        )
         c = self.registry[product]
         if c.kind == "derived":
             target = c.inputs[0]
-            msg = (f"An error occurred (AccessDeniedException) when calling the GetTable operation: Insufficient Lake Formation "
-                   f"permission(s): Required SELECT on {target.replace('.', '_')}.{target.split('.')[1]} for principal "
-                   f"arn:aws:iam::123456789012:role/mesh-mwaa-execution")
+            msg = (
+                f"An error occurred (AccessDeniedException) when calling the GetTable operation: Insufficient Lake Formation "
+                f"permission(s): Required SELECT on {target.replace('.', '_')}.{target.split('.')[1]} for principal "
+                f"arn:aws:iam::123456789012:role/mesh-mwaa-execution"
+            )
             step = "transform"
         else:
-            msg = (f"An error occurred (AccessDenied) when calling the PutObject operation: User arn:aws:sts::123456789012:assumed-role/"
-                   f"mesh-mwaa-execution is not authorized to perform s3:PutObject on arn:aws:s3:::mesh-lake-{c.domain}/{c.name}/dt={dt}/")
+            msg = (
+                f"An error occurred (AccessDenied) when calling the PutObject operation: User arn:aws:sts::123456789012:assumed-role/"
+                f"mesh-mwaa-execution is not authorized to perform s3:PutObject on arn:aws:s3:::mesh-lake-{c.domain}/{c.name}/dt={dt}/"
+            )
             step = "ingest"
-        return self._env_fault("access_denied", dt, product, step, StepError("AccessDeniedException", msg), 99,
-                               "a Terraform change removed a grant from the pipeline role")
+        return self._env_fault(
+            "access_denied",
+            dt,
+            product,
+            step,
+            StepError("AccessDeniedException", msg),
+            99,
+            "a Terraform change removed a grant from the pipeline role",
+        )
 
     def _inject_resource_exhausted(self, dt: str, drops: dict[str, list[dict[str, Any]]]) -> Incident:
-        product = str(self.rng.choice(["leads.dealer_lead_performance", "pricing.price_ratings", "listings.active_listings_daily"]))
-        msg = str(self.rng.choice([
-            "Out of Memory Error: failed to allocate data of size 2.0 GiB (6.1 GiB/6.2 GiB used)",
-            "Query exhausted resources at this scale factor (worker mesh-mwaa-worker-3 killed by the OOM killer)",
-        ]))
-        return self._env_fault("resource_exhausted", dt, product, "transform", StepError("ResourceExhausted", msg), 99,
-                               "the worker ran out of memory")
+        product = str(
+            self.rng.choice(["leads.dealer_lead_performance", "pricing.price_ratings", "listings.active_listings_daily"])
+        )
+        msg = str(
+            self.rng.choice(
+                [
+                    "Out of Memory Error: failed to allocate data of size 2.0 GiB (6.1 GiB/6.2 GiB used)",
+                    "Query exhausted resources at this scale factor (worker mesh-mwaa-worker-3 killed by the OOM killer)",
+                ]
+            )
+        )
+        return self._env_fault(
+            "resource_exhausted",
+            dt,
+            product,
+            "transform",
+            StepError("ResourceExhausted", msg),
+            99,
+            "the worker ran out of memory",
+        )
 
     def _inject_transient_infra(self, dt: str, drops: dict[str, list[dict[str, Any]]]) -> Incident:
         product = str(self.rng.choice(list(self.registry.contracts)))
         c = self.registry[product]
-        msg = str(self.rng.choice([
-            "An error occurred (SlowDown) when calling the PutObject operation (reached max retries: 4): Please reduce your request rate.",
-            "An error occurred (ServiceUnavailable) when calling the GetPartitions operation: Glue is temporarily unavailable",
-            "Could not connect to the endpoint URL: https://s3.eu-central-1.amazonaws.com/ (read timeout=60)",
-        ]))
+        msg = str(
+            self.rng.choice(
+                [
+                    "An error occurred (SlowDown) when calling the PutObject operation (reached max retries: 4): Please reduce your request rate.",
+                    "An error occurred (ServiceUnavailable) when calling the GetPartitions operation: Glue is temporarily unavailable",
+                    "Could not connect to the endpoint URL: https://s3.eu-central-1.amazonaws.com/ (read timeout=60)",
+                ]
+            )
+        )
         step = "ingest" if c.kind == "source" else "transform"
-        return self._env_fault("transient_infra", dt, product, step, StepError("ServiceError", msg, retryable=True), 3,
-                               "AWS throttled or briefly failed beyond the retries")
+        return self._env_fault(
+            "transient_infra",
+            dt,
+            product,
+            step,
+            StepError("ServiceError", msg, retryable=True),
+            3,
+            "AWS throttled or briefly failed beyond the retries",
+        )
 
     def _fault(self, product: str, dt: str, step: str, attempt: int) -> StepError | None:
         f = self.faults.get((product, dt, step))
@@ -423,15 +515,27 @@ class World:
                 cur = self.versions.in_force(product, dt)
                 assert cur is not None
                 data["version"] = int(yaml.safe_load(cur.contract)["version"]) + 1
-                self.versions.publish(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), previous.sql, since,
-                                      previous.author, "revert rename (consumers broke)", published=f"{dt}T10:00:00Z")
+                self.versions.publish(
+                    yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+                    previous.sql,
+                    since,
+                    previous.author,
+                    "revert rename (consumers broke)",
+                    published=f"{dt}T10:00:00Z",
+                )
                 fixed = [{(old if k == new else k): v for k, v in r.items()} for r in self._drops[since][product]]
                 write_jsonl(self.data / "landing" / SOURCES[product] / product.split(".", 1)[1] / f"{since}.jsonl", fixed)
                 self._rerun_from(since, product)
             elif fix[0] == "revert_sql":
                 _, product, previous, since = fix
-                self.versions.publish(previous.contract, previous.sql, since, previous.author, "revert transform change",
-                                      published=f"{dt}T10:00:00Z")
+                self.versions.publish(
+                    previous.contract,
+                    previous.sql,
+                    since,
+                    previous.author,
+                    "revert transform change",
+                    published=f"{dt}T10:00:00Z",
+                )
                 self._rerun_from(since, product)
 
     def _rerun_from(self, day: str, product: str) -> None:
@@ -483,5 +587,14 @@ class World:
                     continue
                 for run_id in inc.affected_runs:
                     label = inc.kind if rng.random() > 0.08 else str(rng.choice(kinds))  # on-call labels are not perfect
-                    f.write(json.dumps({"run_id": run_id, "root_cause": label, "routed_to": inc.owner,
-                                        "resolution": f"{inc.detail}; fixed and re-run"}) + "\n")
+                    f.write(
+                        json.dumps(
+                            {
+                                "run_id": run_id,
+                                "root_cause": label,
+                                "routed_to": inc.owner,
+                                "resolution": f"{inc.detail}; fixed and re-run",
+                            }
+                        )
+                        + "\n"
+                    )

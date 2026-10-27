@@ -155,7 +155,9 @@ class ModelRouter:
                     **model_call_attributes(req.task, m.model_id, m.provider, req.prompt_id, req.prompt_version, req.data_scope),
                 ) as s:
                     try:
-                        resp = await asyncio.wait_for(provider.generate(r, m.model_id), timeout=float(self.routing["timeout_seconds"]))
+                        resp = await asyncio.wait_for(
+                            provider.generate(r, m.model_id), timeout=float(self.routing["timeout_seconds"])
+                        )
                     except (ProviderError, TimeoutError) as e:
                         retryable = getattr(e, "retryable", True)
                         code = getattr(e, "code", "timeout")

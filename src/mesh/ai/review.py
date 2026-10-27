@@ -73,7 +73,9 @@ def _parse(resp: ModelResponse) -> ReviewDraft:
 
 
 class Reviewer:
-    def __init__(self, base: Registry, policy: AccessPolicy, lake: Lake | None, router: ModelRouter | None, today: date | None = None):
+    def __init__(
+        self, base: Registry, policy: AccessPolicy, lake: Lake | None, router: ModelRouter | None, today: date | None = None
+    ):
         self.base = base
         self.policy = policy
         self.lake = lake
@@ -92,9 +94,15 @@ class Reviewer:
 
         for product in removed:
             consumers = self.base.consumers(product)
-            add("block" if consumers else "needs_approval", "product_removed", product, None,
-                f"{product} is deleted" + (f" while {', '.join(consumers)} read it" if consumers else ""), consumers=consumers,
-                approvers=[self.base[product].owner])
+            add(
+                "block" if consumers else "needs_approval",
+                "product_removed",
+                product,
+                None,
+                f"{product} is deleted" + (f" while {', '.join(consumers)} read it" if consumers else ""),
+                consumers=consumers,
+                approvers=[self.base[product].owner],
+            )
         for product in sorted(touched):
             new = new_reg[product]
             for p in lint(new, new_reg, None, new_reg.sql.get(product)):
@@ -106,8 +114,17 @@ class Reviewer:
             old = self.base[product]
             for ch in diff(old, new, self.base.sql.get(product), new_reg.sql.get(product)):
                 self._judge(ch, old, new, new_reg, add)
-            if any(f.kind in ("column_removed", "column_renamed", "type_changed") and f.product == product for f in findings) and new.version <= old.version:
-                add("block", "version_not_bumped", product, None, f"a breaking change needs a new major version (still v{new.version})")
+            if (
+                any(f.kind in ("column_removed", "column_renamed", "type_changed") and f.product == product for f in findings)
+                and new.version <= old.version
+            ):
+                add(
+                    "block",
+                    "version_not_bumped",
+                    product,
+                    None,
+                    f"a breaking change needs a new major version (still v{new.version})",
+                )
             self._check_text(new, add)
         # consumers checked against the changed inputs (a reclassified column, a removed one, a tighter SLA)
         for product in sorted(touched):
@@ -116,9 +133,20 @@ class Reviewer:
                     continue
                 for p in lint(new_reg[consumer], new_reg, None, new_reg.sql.get(consumer)):
                     if p.severity == "error":
-                        add("block", f"downstream:{p.rule}", consumer, None, p.message, consumers=[consumer], approvers=[new_reg[consumer].owner])
-        verdict: Verdict = "block" if any(f.severity == "block" for f in findings) else (
-            "needs_approval" if any(f.severity == "needs_approval" for f in findings) else "approve")
+                        add(
+                            "block",
+                            f"downstream:{p.rule}",
+                            consumer,
+                            None,
+                            p.message,
+                            consumers=[consumer],
+                            approvers=[new_reg[consumer].owner],
+                        )
+        verdict: Verdict = (
+            "block"
+            if any(f.severity == "block" for f in findings)
+            else ("needs_approval" if any(f.severity == "needs_approval" for f in findings) else "approve")
+        )
         review = Review(verdict, sorted(touched | set(removed)), findings, "", {}, "", "")
         if use_model and self.router is not None:
             await self._write(review, changes)
@@ -167,43 +195,101 @@ class Reviewer:
             if ripe and not readers:
                 add("info", ch.kind, p, ch.column, f"{ch.detail} after its deprecation window; nobody reads it")
             else:
-                why = (f"read by {', '.join(readers)}" if readers else "") + ("" if ripe else (", " if readers else "") +
-                                                                               f"not deprecated for {window} days first")
+                why = (f"read by {', '.join(readers)}" if readers else "") + (
+                    "" if ripe else (", " if readers else "") + f"not deprecated for {window} days first"
+                )
                 add("block", ch.kind, p, ch.column, f"{ch.detail}: {why}", consumers=readers, approvers=owners)
         elif ch.kind == "column_renamed":
-            add("block", ch.kind, p, ch.column, f"{ch.detail}" + (f": {', '.join(readers)} read '{ch.old}'" if readers else
-                                                                   ": existing queries and dashboards use the old name"),
-                consumers=readers, approvers=owners, data={"old": ch.old, "new": ch.new})
+            add(
+                "block",
+                ch.kind,
+                p,
+                ch.column,
+                f"{ch.detail}"
+                + (
+                    f": {', '.join(readers)} read '{ch.old}'" if readers else ": existing queries and dashboards use the old name"
+                ),
+                consumers=readers,
+                approvers=owners,
+                data={"old": ch.old, "new": ch.new},
+            )
         elif ch.kind == "type_changed":
-            add("block", ch.kind, p, ch.column, f"{ch.detail} is not a widening" + (f"; read by {', '.join(readers)}" if readers else ""),
-                consumers=readers, approvers=owners)
+            add(
+                "block",
+                ch.kind,
+                p,
+                ch.column,
+                f"{ch.detail} is not a widening" + (f"; read by {', '.join(readers)}" if readers else ""),
+                consumers=readers,
+                approvers=owners,
+            )
         elif ch.kind == "type_widened":
             add("info", ch.kind, p, ch.column, f"{ch.detail} (widening: consumers keep working)")
         elif ch.kind == "became_optional":
-            add("needs_approval" if readers else "info", ch.kind, p, ch.column, f"{ch.detail}" + (
-                f"; {', '.join(readers)} may assume it is always set" if readers else ""), consumers=readers, approvers=owners)
+            add(
+                "needs_approval" if readers else "info",
+                ch.kind,
+                p,
+                ch.column,
+                f"{ch.detail}" + (f"; {', '.join(readers)} may assume it is always set" if readers else ""),
+                consumers=readers,
+                approvers=owners,
+            )
         elif ch.kind == "classification_lowered":
-            add("block", ch.kind, p, ch.column, f"{ch.detail}: more people would see it; data governance must approve, not a code review",
-                approvers=list(self.cfg["governance_approvers"]))
+            add(
+                "block",
+                ch.kind,
+                p,
+                ch.column,
+                f"{ch.detail}: more people would see it; data governance must approve, not a code review",
+                approvers=list(self.cfg["governance_approvers"]),
+            )
         elif ch.kind == "classification_raised":
             losing = self._losing_access(old, new, ch.column or "")
-            add("needs_approval", ch.kind, p, ch.column, f"{ch.detail}; loses access: {', '.join(losing) or 'nobody'}",
-                approvers=[old.owner], data={"losing": losing})
+            add(
+                "needs_approval",
+                ch.kind,
+                p,
+                ch.column,
+                f"{ch.detail}; loses access: {', '.join(losing) or 'nobody'}",
+                approvers=[old.owner],
+                data={"losing": losing},
+            )
         elif ch.kind in ("quality_removed", "quality_loosened"):
             add("needs_approval", ch.kind, p, ch.column, ch.detail, consumers=self.base.consumers(p), approvers=[old.owner])
         elif ch.kind == "sla_loosened":
             tight = [c for c in self.base.consumers(p) if self.base[c].sla.freshness_hours < new.sla.freshness_hours]
-            add("block" if tight else "needs_approval", ch.kind, p, None, ch.detail + (
-                f"; {', '.join(tight)} promise fresher data than this input would" if tight else ""), consumers=tight,
-                approvers=sorted({self.base[c].owner for c in tight}) or [old.owner])
+            add(
+                "block" if tight else "needs_approval",
+                ch.kind,
+                p,
+                None,
+                ch.detail + (f"; {', '.join(tight)} promise fresher data than this input would" if tight else ""),
+                consumers=tight,
+                approvers=sorted({self.base[c].owner for c in tight}) or [old.owner],
+            )
         elif ch.kind == "partition_changed":
             add("block", ch.kind, p, None, ch.detail, consumers=self.base.consumers(p))
         elif ch.kind == "product_deprecated":
-            add("needs_approval", ch.kind, p, None, ch.detail, consumers=self.base.consumers(p),
-                approvers=sorted({self.base[c].owner for c in self.base.consumers(p)}))
+            add(
+                "needs_approval",
+                ch.kind,
+                p,
+                None,
+                ch.detail,
+                consumers=self.base.consumers(p),
+                approvers=sorted({self.base[c].owner for c in self.base.consumers(p)}),
+            )
         elif ch.kind == "transform_changed":
             self._dry_run(p, new_reg, add)
-        elif ch.kind in ("column_added", "became_required", "quality_added", "sla_tightened", "column_deprecated", "inputs_changed"):
+        elif ch.kind in (
+            "column_added",
+            "became_required",
+            "quality_added",
+            "sla_tightened",
+            "column_deprecated",
+            "inputs_changed",
+        ):
             add("info", ch.kind, p, ch.column, ch.detail)
 
     def _losing_access(self, old: Contract, new: Contract, column: str) -> list[str]:
@@ -220,8 +306,13 @@ class Reviewer:
     def _check_text(self, c: Contract, add: Any) -> None:
         flagged = screen(c.description).flagged + [f for col in c.columns for f in screen(col.description).flagged]
         if flagged:
-            add("block", "instructions_in_metadata", c.product, None,
-                f"descriptions contain text aimed at AI assistants: \"{flagged[0][:120]}\"; descriptions are shown to assistants as data")
+            add(
+                "block",
+                "instructions_in_metadata",
+                c.product,
+                None,
+                f'descriptions contain text aimed at AI assistants: "{flagged[0][:120]}"; descriptions are shown to assistants as data',
+            )
 
     def _dry_run(self, product: str, reg: Registry, add: Any) -> None:
         """Run the new transform on the last few published days and compare with what is published."""
@@ -229,7 +320,7 @@ class Reviewer:
             add("needs_approval", "transform_changed", product, None, "transform changed; no lake to dry-run against here")
             return
         c = reg[product]
-        days = self.lake.partitions(product)[-int(self.cfg["dry_run_days"]):]
+        days = self.lake.partitions(product)[-int(self.cfg["dry_run_days"]) :]
         if not days:
             add("info", "transform_changed", product, None, "transform changed; no published partitions to compare with yet")
             return
@@ -250,33 +341,69 @@ class Reviewer:
         changed = [(d, o, n) for d, o, n in results if o and abs(n - o) / o > warn]
         detail = "; ".join(f"{d}: {o} -> {n} rows" for d, o, n in results)
         if changed:
-            add("needs_approval", "dry_run_rows_changed", product, None, f"the new transform changes row counts by more than {warn:.0%}: {detail}",
-                consumers=self.base.consumers(product), approvers=sorted({self.base[x].owner for x in self.base.consumers(product)}) or [c.owner],
-                data={"days": results})
+            add(
+                "needs_approval",
+                "dry_run_rows_changed",
+                product,
+                None,
+                f"the new transform changes row counts by more than {warn:.0%}: {detail}",
+                consumers=self.base.consumers(product),
+                approvers=sorted({self.base[x].owner for x in self.base.consumers(product)}) or [c.owner],
+                data={"days": results},
+            )
         else:
-            add("info", "dry_run_ok", product, None, f"the new transform ran on {len(results)} recent days: {detail}", data={"days": results})
+            add(
+                "info",
+                "dry_run_ok",
+                product,
+                None,
+                f"the new transform ran on {len(results)} recent days: {detail}",
+                data={"days": results},
+            )
 
     # ---------------------------------------------------------------- comment
 
     async def _write(self, review: Review, changes: list[FileChange]) -> None:
         assert self.router is not None
         prompt = load("review")
-        findings = "\n".join(f"- {f.id} [{f.severity}] {f.product}{'.' + f.column if f.column else ''}: {f.detail}" for f in review.findings) or "(none)"
+        findings = (
+            "\n".join(
+                f"- {f.id} [{f.severity}] {f.product}{'.' + f.column if f.column else ''}: {f.detail}" for f in review.findings
+            )
+            or "(none)"
+        )
         change = ", ".join(c.path for c in changes)
         user = prompt.render_user(change=change, verdict=review.verdict, findings=findings)
-        req = ModelRequest(task="review", system=prompt.system, messages=[Message("user", [Block.t(user)])], tools=[RECORD_REVIEW],
-                           tool_choice="record_review", max_tokens=1200, prompt_id=prompt.id, prompt_version=prompt.version, data_scope="internal")
+        req = ModelRequest(
+            task="review",
+            system=prompt.system,
+            messages=[Message("user", [Block.t(user)])],
+            tools=[RECORD_REVIEW],
+            tool_choice="record_review",
+            max_tokens=1200,
+            prompt_id=prompt.id,
+            prompt_version=prompt.version,
+            data_scope="internal",
+        )
         try:
-            routed = await self.router.call(req, _parse, Budget(limit_usd=float(self.router.routing.get("max_cost_usd_per_request", 0.2))))
+            routed = await self.router.call(
+                req, _parse, Budget(limit_usd=float(self.router.routing.get("max_cost_usd_per_request", 0.2)))
+            )
         except Unavailable as e:
             review.model_problems.append(f"model unavailable: {e}")
             return
         d = routed.value
         review.model = routed.model.key
-        allowed = {f.product for f in review.findings} | {c for f in review.findings for c in f.consumers} | set(self.base.contracts)
+        allowed = (
+            {f.product for f in review.findings} | {c for f in review.findings for c in f.consumers} | set(self.base.contracts)
+        )
         text = " ".join([d.summary, d.suggested_path, *(n.note for n in d.finding_notes)])
         named = set(re.findall(r"\b([a-z_]+\.[a-z_]+)\b", text))
-        invented = sorted(n for n in named if n not in allowed and n.split(".")[0] in self.policy.tags["domain"] + ["finance", "marketing", "sales"])
+        invented = sorted(
+            n
+            for n in named
+            if n not in allowed and n.split(".")[0] in self.policy.tags["domain"] + ["finance", "marketing", "sales"]
+        )
         unknown_ids = [n.finding for n in d.finding_notes if n.finding not in {f.id for f in review.findings}]
         if invented or unknown_ids:
             review.model_problems.append(f"comment mentioned {', '.join(invented + unknown_ids)}, which are not in the findings")
@@ -291,15 +418,19 @@ def _default_summary(r: Review) -> str:
         return f"{len(blocks)} finding(s) block this change: " + "; ".join(f.detail for f in blocks[:3])
     approvals = [f for f in r.findings if f.severity == "needs_approval"]
     if approvals:
-        return "Safe to merge after approval by " + ", ".join(sorted({a for f in approvals for a in f.approvers}) or ["the owner"])
+        return "Safe to merge after approval by " + ", ".join(
+            sorted({a for f in approvals for a in f.approvers}) or ["the owner"]
+        )
     return "No consumer is affected."
 
 
 def _default_path(r: Review) -> str:
     kinds = {f.kind for f in r.findings if f.severity == "block"}
     if kinds & {"column_removed", "column_renamed"}:
-        return ("Add the new column next to the old one, mark the old one deprecated_on today, tell the consumers, and remove it after "
-                f"{config.platform()['contracts']['deprecation_days']} days.")
+        return (
+            "Add the new column next to the old one, mark the old one deprecated_on today, tell the consumers, and remove it after "
+            f"{config.platform()['contracts']['deprecation_days']} days."
+        )
     if "dry_run_failed" in kinds:
         return "Fix the transform so the dry run passes on the recent partitions."
     if "classification_lowered" in kinds:
@@ -315,11 +446,16 @@ def render_markdown(r: Review) -> str:
         for f in r.findings:
             note = r.notes.get(f.id, "")
             extra = f" {note}" if note and f.detail not in note and note not in f.detail else ""
-            lines.append(f"| {f.severity} | {f.detail}{extra} | `{f.product}`"
-                         f"{'.' + f.column if f.column else ''} | {', '.join(f.consumers) or '-'} | {', '.join(f.approvers) or '-'} |")
+            lines.append(
+                f"| {f.severity} | {f.detail}{extra} | `{f.product}`"
+                f"{'.' + f.column if f.column else ''} | {', '.join(f.consumers) or '-'} | {', '.join(f.approvers) or '-'} |"
+            )
         lines.append("")
     if r.suggested_path:
         lines += [f"**Safe path:** {r.suggested_path}", ""]
-    lines.append("_Verdict decided by the platform from contracts, lineage, grants and a dry run; wording by the assistant._" if r.model
-                 else "_Verdict and wording from the platform's checks._")
+    lines.append(
+        "_Verdict decided by the platform from contracts, lineage, grants and a dry run; wording by the assistant._"
+        if r.model
+        else "_Verdict and wording from the platform's checks._"
+    )
     return "\n".join(lines)

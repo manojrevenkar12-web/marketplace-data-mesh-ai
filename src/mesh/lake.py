@@ -114,8 +114,14 @@ def connect() -> duckdb.DuckDBPyConnection:
     return con
 
 
-def register_view(con: duckdb.DuckDBPyConnection, lake: Lake, c: Contract, columns: list[str] | None = None,
-                  row_filter: str | None = None, until_dt: str | None = None) -> None:
+def register_view(
+    con: duckdb.DuckDBPyConnection,
+    lake: Lake,
+    c: Contract,
+    columns: list[str] | None = None,
+    row_filter: str | None = None,
+    until_dt: str | None = None,
+) -> None:
     """A view named ``<domain>.<product>`` over the published partitions, restricted to some columns and rows."""
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {c.domain}")
     cols = columns or [*c.column_names, c.partition]
@@ -125,7 +131,7 @@ def register_view(con: duckdb.DuckDBPyConnection, lake: Lake, c: Contract, colum
     else:  # no data yet: an empty relation with the contract's schema
         from mesh.lineage import SQL_TYPES
 
-        typed = ", ".join(f"CAST(NULL AS {SQL_TYPES[t]}) AS {_q(n)}" for n, t in c.schema().items())
+        typed = ", ".join(f"CAST(NULL AS {SQL_TYPES[t]}) AS {_q(n)}" for n, t in c.table_schema().items())
         src = f"(SELECT {typed} WHERE FALSE)"
     where = []
     if row_filter:

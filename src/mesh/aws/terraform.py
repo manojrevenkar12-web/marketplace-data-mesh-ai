@@ -26,8 +26,15 @@ def render(registry: Registry, policy: AccessPolicy) -> dict[str, Any]:
             "owner": c.owner,
             "version": c.version,
             "partition": c.partition,
-            "columns": [{"name": col.name, "type": GLUE_TYPES[col.type], "comment": (col.description or "")[:255],
-                         "sensitivity": col.classification} for col in c.columns],
+            "columns": [
+                {
+                    "name": col.name,
+                    "type": GLUE_TYPES[col.type],
+                    "comment": (col.description or "")[:255],
+                    "sensitivity": col.classification,
+                }
+                for col in c.columns
+            ],
         }
     grants, filters = [], []
     for name, p in sorted(policy.principals.items()):
@@ -37,8 +44,16 @@ def render(registry: Registry, policy: AccessPolicy) -> dict[str, Any]:
             if g.row_filter:
                 for c in sorted(registry, key=lambda x: x.product):
                     if c.domain in domains and policy.table_access(name, c).row_filter:
-                        filters.append({"key": f"{name}-{c.domain}-{c.name}-{i}", "principal": name, "domain": c.domain, "table": c.name,
-                                        "filter": g.row_filter, "columns": [col.name for col in c.columns if col.classification in sens] + [c.partition]})
+                        filters.append(
+                            {
+                                "key": f"{name}-{c.domain}-{c.name}-{i}",
+                                "principal": name,
+                                "domain": c.domain,
+                                "table": c.name,
+                                "filter": g.row_filter,
+                                "columns": [col.name for col in c.columns if col.classification in sens] + [c.partition],
+                            }
+                        )
                 continue
             grants.append({"key": f"{name}-{i}", "principal": name, "domains": domains, "sensitivities": sens})
     q = config.platform()["query"]

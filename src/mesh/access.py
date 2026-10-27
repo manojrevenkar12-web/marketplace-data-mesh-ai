@@ -84,8 +84,7 @@ class AccessPolicy:
         self.principals: dict[str, Principal] = {}
         for name, p in raw["principals"].items():
             grants = [
-                Grant(_tuple(g.get("domain")), _tuple(g.get("sensitivity")), g.get("row_filter"))
-                for g in p.get("grants", [])
+                Grant(_tuple(g.get("domain")), _tuple(g.get("sensitivity")), g.get("row_filter")) for g in p.get("grants", [])
             ]
             self.principals[name] = Principal(name, p.get("description", ""), p.get("kind", "team"), grants)
         self.users: dict[str, User] = {uid: User(uid, u["name"], u["principal"]) for uid, u in raw.get("users", {}).items()}

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
+from typing import Any, ClassVar
 
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
@@ -41,12 +41,17 @@ def to_converse(req: ModelRequest, model: str, guardrail: dict[str, str] | None 
             choice = {"tool": {"name": req.tool_choice}}
         params["toolConfig"] = {
             "tools": [
-                {"toolSpec": {"name": t.name, "description": t.description, "inputSchema": {"json": t.input_schema}}} for t in req.tools
+                {"toolSpec": {"name": t.name, "description": t.description, "inputSchema": {"json": t.input_schema}}}
+                for t in req.tools
             ],
             "toolChoice": choice,
         }
     if guardrail:
-        params["guardrailConfig"] = {"guardrailIdentifier": guardrail["id"], "guardrailVersion": guardrail["version"], "trace": "enabled"}
+        params["guardrailConfig"] = {
+            "guardrailIdentifier": guardrail["id"],
+            "guardrailVersion": guardrail["version"],
+            "trace": "enabled",
+        }
     if req.prompt_id:
         params["requestMetadata"] = {"prompt": f"{req.prompt_id}-v{req.prompt_version}", "data_scope": req.data_scope or "none"}
     return params
@@ -62,7 +67,13 @@ def _message(m: Message) -> dict[str, Any]:
         else:
             payload = b.content if isinstance(b.content, dict) else {"result": b.content}
             content.append(
-                {"toolResult": {"toolUseId": b.tool_use_id, "content": [{"json": payload}], "status": "error" if b.is_error else "success"}}
+                {
+                    "toolResult": {
+                        "toolUseId": b.tool_use_id,
+                        "content": [{"json": payload}],
+                        "status": "error" if b.is_error else "success",
+                    }
+                }
             )
     return {"role": m.role, "content": content}
 
@@ -91,7 +102,7 @@ def from_converse(resp: dict[str, Any], model: str, latency_ms: float) -> ModelR
 class BedrockProvider:
     name = "bedrock"
 
-    REGIONS = {"eu.": "eu-central-1", "us.": "us-east-1", "apac.": "ap-northeast-1"}
+    REGIONS: ClassVar[dict[str, str]] = {"eu.": "eu-central-1", "us.": "us-east-1", "apac.": "ap-northeast-1"}
 
     def __init__(self, client: Any = None, region: str = "eu-central-1", guardrail: dict[str, str] | None = None):
         """``client`` pins one client (tests); otherwise a client per region is created for the inference profile used."""
@@ -108,7 +119,9 @@ class BedrockProvider:
             import boto3
 
             self._clients[region] = boto3.client(
-                "bedrock-runtime", region_name=region, config=Config(retries={"max_attempts": 1, "mode": "standard"}, read_timeout=60)
+                "bedrock-runtime",
+                region_name=region,
+                config=Config(retries={"max_attempts": 1, "mode": "standard"}, read_timeout=60),
             )
         return self._clients[region]
 

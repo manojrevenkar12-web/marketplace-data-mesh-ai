@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import sqlglot
 from sqlglot import exp
@@ -35,13 +35,19 @@ SQL_TYPES = {
 def schema_of(registry: Registry) -> dict[str, dict[str, dict[str, str]]]:
     out: dict[str, dict[str, dict[str, str]]] = {}
     for c in registry:
-        out.setdefault(c.domain, {})[c.name] = {k: SQL_TYPES.get(v, "VARCHAR") for k, v in c.schema().items()}
+        out.setdefault(c.domain, {})[c.name] = {k: SQL_TYPES.get(v, "VARCHAR") for k, v in c.table_schema().items()}
     return out
 
 
-def _qualified(sql: str, registry: Registry) -> exp.Expression:
+def _qualified(sql: str, registry: Registry) -> Any:
     tree = sqlglot.parse_one(sql, read="athena")
-    return qualify(tree, schema=schema_of(registry), dialect="athena", validate_qualify_columns=False, identify=False)
+    return qualify(
+        tree,
+        schema=cast(dict[str, object], schema_of(registry)),
+        dialect="athena",
+        validate_qualify_columns=False,
+        identify=False,
+    )
 
 
 def source_columns(sql: str, registry: Registry) -> set[tuple[str, str]]:
@@ -135,4 +141,15 @@ def readers_of(product: str, column: str, registry: Registry) -> list[str]:
     return sorted(out)
 
 
-__all__ = ["Edge", "Scope", "column_lineage", "downstream", "edges", "readers_of", "schema_of", "source_columns", "tables_read", "upstream"]
+__all__ = [
+    "Edge",
+    "Scope",
+    "column_lineage",
+    "downstream",
+    "edges",
+    "readers_of",
+    "schema_of",
+    "source_columns",
+    "tables_read",
+    "upstream",
+]

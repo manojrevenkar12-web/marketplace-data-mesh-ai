@@ -18,8 +18,9 @@ from mesh.lake import Lake, _q
 from mesh.state import QualityResult
 
 
-def run_checks(c: Contract, dt: str, staged: Path, lake: Lake, previous_counts: list[int],
-               con: duckdb.DuckDBPyConnection | None = None) -> list[QualityResult]:
+def run_checks(
+    c: Contract, dt: str, staged: Path, lake: Lake, previous_counts: list[int], con: duckdb.DuckDBPyConnection | None = None
+) -> list[QualityResult]:
     con = con or duckdb.connect()
     src = f"read_parquet('{staged}')"
     n = int(con.execute(f"SELECT count(*) FROM {src}").fetchone()[0])  # type: ignore[index]
@@ -30,8 +31,9 @@ def run_checks(c: Contract, dt: str, staged: Path, lake: Lake, previous_counts: 
     return out
 
 
-def _check(con: duckdb.DuckDBPyConnection, q: QualityCheck, src: str, n: int, c: Contract, lake: Lake,
-           previous_counts: list[int]) -> tuple[bool, float | int | str | None, str]:
+def _check(
+    con: duckdb.DuckDBPyConnection, q: QualityCheck, src: str, n: int, c: Contract, lake: Lake, previous_counts: list[int]
+) -> tuple[bool, float | int | str | None, str]:
     col = _q(q.column) if q.column else ""
     if q.check == "not_null":
         bad = _one(con, f"SELECT count(*) FROM {src} WHERE {col} IS NULL")
@@ -42,7 +44,9 @@ def _check(con: duckdb.DuckDBPyConnection, q: QualityCheck, src: str, n: int, c:
     if q.check == "accepted_values":
         values = ", ".join("'" + v.replace("'", "''") + "'" for v in (q.values or []))
         bad = _one(con, f"SELECT count(*) FROM {src} WHERE {col} IS NOT NULL AND {col} NOT IN ({values})")
-        sample = con.execute(f"SELECT DISTINCT {col} FROM {src} WHERE {col} IS NOT NULL AND {col} NOT IN ({values}) LIMIT 3").fetchall()
+        sample = con.execute(
+            f"SELECT DISTINCT {col} FROM {src} WHERE {col} IS NOT NULL AND {col} NOT IN ({values}) LIMIT 3"
+        ).fetchall()
         return bad == 0, bad, f"{bad} rows outside {q.values}" + (f", e.g. {[s[0] for s in sample]}" if sample else "")
     if q.check == "range":
         cond = []
@@ -68,8 +72,11 @@ def _check(con: duckdb.DuckDBPyConnection, q: QualityCheck, src: str, n: int, c:
         ref_product, ref_col = q.ref.rsplit(".", 1)
         if not lake.partitions(ref_product):
             return True, 0, f"no published {ref_product} to check against"
-        bad = _one(con, f"SELECT count(*) FROM {src} s WHERE s.{col} IS NOT NULL AND s.{col} NOT IN "
-                        f"(SELECT {_q(ref_col)} FROM read_parquet('{lake.glob(ref_product)}'))")
+        bad = _one(
+            con,
+            f"SELECT count(*) FROM {src} s WHERE s.{col} IS NOT NULL AND s.{col} NOT IN "
+            f"(SELECT {_q(ref_col)} FROM read_parquet('{lake.glob(ref_product)}'))",
+        )
         return bad == 0, bad, f"{bad} rows reference an unknown {q.ref}"
     return True, None, "not evaluated"
 

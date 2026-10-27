@@ -17,7 +17,11 @@ def test_only_the_simulation_and_the_evaluation_touch_the_truth():
             continue
         tree = ast.parse(f.read_text())
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (node.module.startswith("mesh.sim") or node.module.startswith("mesh.eval")):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (node.module.startswith("mesh.sim") or node.module.startswith("mesh.eval"))
+            ):
                 offenders.append(f"{f.relative_to(SRC)} imports {node.module}")
             if isinstance(node, ast.Import) and any(a.name.startswith(("mesh.sim", "mesh.eval")) for a in node.names):
                 offenders.append(f"{f.relative_to(SRC)} imports mesh.sim/eval")

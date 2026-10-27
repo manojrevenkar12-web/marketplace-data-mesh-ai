@@ -37,7 +37,9 @@ from mesh.state import Run, State
 
 COLUMN_MISSING = re.compile(
     r'Referenced column "?(\w+)"? not found|column "?(\w+)"? (?:does not exist|not found)|does not have a column named "?(\w+)"?'
-    r"|Column '(\w+)' cannot be resolved|Values list .*? does not have a column named \"?(\w+)", re.I)
+    r"|Column '(\w+)' cannot be resolved|Values list .*? does not have a column named \"?(\w+)",
+    re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -120,7 +122,7 @@ class TriageClassifier:
     def load(cls, path: Path) -> TriageClassifier:
         if not path.exists():
             return cls()
-        d = pickle.loads(path.read_bytes())  # noqa: S301 - our own artifact, written by `mesh train`
+        d = pickle.loads(path.read_bytes())
         return cls(d["vec"], d["model"])
 
 
@@ -167,9 +169,22 @@ class Triage:
         all_cands = sorted(cands, key=lambda c: -c.confidence) + cls_cands
         cats = list(self.cfg["categories"])
         diag = Diagnosis(
-            run_id=run.id, product=run.product, dt=run.dt, status=run.status, category="unknown", route_to="", naive_route=registry[run.product].owner,
-            decided_by="uncertain", confidence=0.0, root_run=root.id, summary="", next_steps=[], evidence=evidence, cited=[],
-            candidates=all_cands, sources_consulted=sorted(set(consulted)),
+            run_id=run.id,
+            product=run.product,
+            dt=run.dt,
+            status=run.status,
+            category="unknown",
+            route_to="",
+            naive_route=registry[run.product].owner,
+            decided_by="uncertain",
+            confidence=0.0,
+            root_run=root.id,
+            summary="",
+            next_steps=[],
+            evidence=evidence,
+            cited=[],
+            candidates=all_cands,
+            sources_consulted=sorted(set(consulted)),
         )
         best_rule = max(cands, key=lambda c: c.confidence) if cands else None
         best_cls = cls_cands[0] if cls_cands else None
@@ -181,17 +196,31 @@ class Triage:
             await self._explain(diag, run, cats, all_cands, registry, root)
         if not diag.summary:
             c = best_rule or best_cls
-            diag.summary = (f"{run.id}: {c.why}" if c else f"{run.id} failed at {run.step}: {run.error_type}. No rule or ticket pattern matches; "
-                                                                f"read the log and add a rule once the cause is known.")
+            diag.summary = (
+                f"{run.id}: {c.why}"
+                if c
+                else f"{run.id} failed at {run.step}: {run.error_type}. No rule or ticket pattern matches; "
+                f"read the log and add a rule once the cause is known."
+            )
         if diag.category in self.cfg["categories"]:
             step = self.cfg["categories"][diag.category]["step"]
             if step not in diag.next_steps:
                 diag.next_steps = [step, *diag.next_steps][:5]
             diag.runbook = self.cfg["categories"][diag.category]["runbook"]
         if root.id != run.id:
-            diag.next_steps.append(f"This run was blocked by {root.id}; it re-runs automatically when that partition is published.")
-        self.state.add_usage({"feature": "triage", "run": run.id, "category": diag.category, "decided_by": diag.decided_by,
-                              "route_to": diag.route_to, "cost_usd": diag.cost_usd})
+            diag.next_steps.append(
+                f"This run was blocked by {root.id}; it re-runs automatically when that partition is published."
+            )
+        self.state.add_usage(
+            {
+                "feature": "triage",
+                "run": run.id,
+                "category": diag.category,
+                "decided_by": diag.decided_by,
+                "route_to": diag.route_to,
+                "cost_usd": diag.cost_usd,
+            }
+        )
         return diag
 
     # ---------------------------------------------------------------- evidence
@@ -211,16 +240,24 @@ class Triage:
             consulted.append("upstream runs")
             nxt = None
             for upstream in current.blocked_by:
-                before = [r for r in self.state.runs(upstream, current.dt) if r.ended <= current.started or r.started <= current.started]
+                before = [
+                    r for r in self.state.runs(upstream, current.dt) if r.ended <= current.started or r.started <= current.started
+                ]
                 if before and not before[-1].ok:
                     nxt = before[-1]
-                    self._add(evidence, "upstream", f"{nxt.id} {nxt.status} at {nxt.step}: {nxt.error_type}: {(nxt.error or '')[:200]}")
+                    self._add(
+                        evidence, "upstream", f"{nxt.id} {nxt.status} at {nxt.step}: {nxt.error_type}: {(nxt.error or '')[:200]}"
+                    )
                     break
             if nxt is None:
                 break
             current = nxt
         if current.status != "upstream_failed":
-            self._add(evidence, "run", f"{current.id} {current.status} at step {current.step}: {current.error_type}: {(current.error or '')[:240]}")
+            self._add(
+                evidence,
+                "run",
+                f"{current.id} {current.status} at step {current.step}: {current.error_type}: {(current.error or '')[:240]}",
+            )
             for line in self._log_lines(current):
                 self._add(evidence, "log", line)
         return current
@@ -245,25 +282,62 @@ class Triage:
         since = (date.fromisoformat(run.dt) - timedelta(lookback)).isoformat()
 
         if et == "LandingFileNotFound":
-            cands.append(Candidate("late_drop", "rule", 0.95, f"the source system's drop for {run.dt} was not in the landing zone", run_ev, run.product))
+            cands.append(
+                Candidate(
+                    "late_drop",
+                    "rule",
+                    0.95,
+                    f"the source system's drop for {run.dt} was not in the landing zone",
+                    run_ev,
+                    run.product,
+                )
+            )
         if et == "ContractViolation" and run.step == "ingest":
-            cands.append(Candidate("schema_drift", "rule", 0.9, "the source drop lacks a contract column and carries a field the contract does not "
-                                                              "declare: the source system renamed it", run_ev + log_ev[:2], run.product))
+            cands.append(
+                Candidate(
+                    "schema_drift",
+                    "rule",
+                    0.9,
+                    "the source drop lacks a contract column and carries a field the contract does not "
+                    "declare: the source system renamed it",
+                    run_ev + log_ev[:2],
+                    run.product,
+                )
+            )
         if et in ("TypeCastError", "MalformedInput") and run.step == "ingest":
-            cands.append(Candidate("type_drift", "rule", 0.9, "the source sent values that cannot be read as the contract's type", run_ev, run.product))
+            cands.append(
+                Candidate(
+                    "type_drift",
+                    "rule",
+                    0.9,
+                    "the source sent values that cannot be read as the contract's type",
+                    run_ev,
+                    run.product,
+                )
+            )
         if et == "QualityCheckFailed":
             consulted.append("quality results")
             failed = [q for q in self.state.quality(run.product, run.dt) if not q.passed and q.severity == "error"]
             qev = [self._add(evidence, "quality", f"{q.check} failed: {q.detail}") for q in failed[-3:]]
             checks = " ".join(q.check for q in failed) or err
             if "unique" in checks:
-                cands.append(Candidate("duplicates", "rule", 0.9, "the partition holds duplicate keys", qev or run_ev, run.product))
+                cands.append(
+                    Candidate("duplicates", "rule", 0.9, "the partition holds duplicate keys", qev or run_ev, run.product)
+                )
             if "not_null" in checks or "null_share" in checks:
-                cands.append(Candidate("null_spike", "rule", 0.88, "a key column is suddenly empty on many rows", qev or run_ev, run.product))
+                cands.append(
+                    Candidate(
+                        "null_spike", "rule", 0.88, "a key column is suddenly empty on many rows", qev or run_ev, run.product
+                    )
+                )
             if "volume" in checks:
                 ratios = [q.observed for q in failed if q.check.startswith("volume") and isinstance(q.observed, int | float)]
                 if not ratios or min(ratios) < 1:
-                    cands.append(Candidate("volume_drop", "rule", 0.85, "far fewer rows than the recent median", qev or run_ev, run.product))
+                    cands.append(
+                        Candidate(
+                            "volume_drop", "rule", 0.85, "far fewer rows than the recent median", qev or run_ev, run.product
+                        )
+                    )
         if run.step == "transform" and et not in ("AccessDeniedException", "ResourceExhausted", "ServiceError"):
             consulted.append("contract history")
             m = COLUMN_MISSING.search(err)
@@ -272,38 +346,80 @@ class Triage:
             for i in c.inputs:
                 for v, changes in self.versions.changes(i, since, run.dt, published_before=run.started):
                     for ch in changes:
-                        relevant = ch.kind in ("column_removed", "column_renamed", "type_changed") and (col is None or ch.column == col)
+                        relevant = ch.kind in ("column_removed", "column_renamed", "type_changed") and (
+                            col is None or ch.column == col
+                        )
                         if relevant:
-                            eid = self._add(evidence, "contract", f"{i} v{v.version} effective {v.effective} by {v.author} "
-                                                                  f"('{v.note}'): {ch.detail}")
+                            eid = self._add(
+                                evidence,
+                                "contract",
+                                f"{i} v{v.version} effective {v.effective} by {v.author} ('{v.note}'): {ch.detail}",
+                            )
                             conf = 0.93 if col else 0.7
-                            cands.append(Candidate("upstream_contract_change", "rule", conf,
-                                                   f"{i} changed its contract on {v.effective} ({ch.detail}) and {run.product} still reads the old column",
-                                                   [*run_ev, eid], i))
+                            cands.append(
+                                Candidate(
+                                    "upstream_contract_change",
+                                    "rule",
+                                    conf,
+                                    f"{i} changed its contract on {v.effective} ({ch.detail}) and {run.product} still reads the old column",
+                                    [*run_ev, eid],
+                                    i,
+                                )
+                            )
             for v, changes in self.versions.changes(run.product, since, run.dt, published_before=run.started):
                 if any(ch.kind == "transform_changed" for ch in changes):
                     consulted.append("transform history")
-                    prev = [h for h in self.versions.history(run.product, run.started) if h.effective < v.effective or h.published < v.published]
-                    diff_text = _sql_diff(prev[-1].sql if prev else "", v.sql or "")
-                    eid = self._add(evidence, "transform", f"{run.product} transform changed, effective {v.effective} by {v.author} ('{v.note}'): {diff_text}")
+                    prev = [
+                        h
+                        for h in self.versions.history(run.product, run.started)
+                        if h.effective < v.effective or h.published < v.published
+                    ]
+                    diff_text = _sql_diff((prev[-1].sql or "") if prev else "", v.sql or "")
+                    eid = self._add(
+                        evidence,
+                        "transform",
+                        f"{run.product} transform changed, effective {v.effective} by {v.author} ('{v.note}'): {diff_text}",
+                    )
                     in_new = bool(col and v.sql and re.search(rf"\b{re.escape(col)}\b", v.sql))
                     conf = 0.9 if (in_new or not col) else 0.6
                     if not any(cd.category == "upstream_contract_change" and cd.confidence > conf for cd in cands):
-                        cands.append(Candidate("code_change", "rule", conf, f"{run.product}'s own transform changed just before the failure "
-                                                                          f"({diff_text})", [*run_ev, eid], run.product))
+                        cands.append(
+                            Candidate(
+                                "code_change",
+                                "rule",
+                                conf,
+                                f"{run.product}'s own transform changed just before the failure ({diff_text})",
+                                [*run_ev, eid],
+                                run.product,
+                            )
+                        )
         if "AccessDenied" in text or "not authorized" in text or "Insufficient Lake Formation" in text:
-            cands.append(Candidate("access_denied", "rule", 0.95, "the pipeline role lacks a Lake Formation or S3 permission", run_ev, run.product))
+            cands.append(
+                Candidate(
+                    "access_denied",
+                    "rule",
+                    0.95,
+                    "the pipeline role lacks a Lake Formation or S3 permission",
+                    run_ev,
+                    run.product,
+                )
+            )
         if re.search(r"out of memory|exhausted resources|oom", text, re.I):
             cands.append(Candidate("resource_exhausted", "rule", 0.93, "the worker ran out of memory", run_ev, run.product))
         if re.search(r"SlowDown|ServiceUnavailable|temporarily unavailable|read timeout|Could not connect|throttl", text, re.I):
-            cands.append(Candidate("transient_infra", "rule", 0.85, "AWS throttled or failed after the retries", run_ev, run.product))
+            cands.append(
+                Candidate("transient_infra", "rule", 0.85, "AWS throttled or failed after the retries", run_ev, run.product)
+            )
         return cands
 
     def _classify(self, run: Run, evidence: list[Evidence]) -> list[Candidate]:
         preds = self.classifier.predict(TriageClassifier.text(run, self.state.log(run.id)))
         ev = [e.id for e in evidence if e.source in ("run", "log")][:3]
-        return [Candidate(c, "classifier", round(p, 3), f"resolved tickets with similar errors were {c}", ev, run.product)
-                for c, p in preds[:2] if p >= 0.15]
+        return [
+            Candidate(c, "classifier", round(p, 3), f"resolved tickets with similar errors were {c}", ev, run.product)
+            for c, p in preds[:2]
+            if p >= 0.15
+        ]
 
     def _decide(self, diag: Diagnosis, c: Candidate, how: str, registry: Registry, root: Run) -> None:
         diag.category, diag.confidence, diag.decided_by = c.category, c.confidence, how
@@ -321,13 +437,31 @@ class Triage:
 
     # ---------------------------------------------------------------- model
 
-    async def _explain(self, diag: Diagnosis, run: Run, cats: list[str], cands: list[Candidate], registry: Registry, root: Run) -> None:
+    async def _explain(
+        self, diag: Diagnosis, run: Run, cats: list[str], cands: list[Candidate], registry: Registry, root: Run
+    ) -> None:
         prompt = load("triage")
-        cand_text = "\n".join(f"- {c.category} ({c.source}, {c.confidence:.2f}): {c.why} [evidence: {', '.join(c.evidence)}]" for c in cands) or "(none)"
+        cand_text = (
+            "\n".join(
+                f"- {c.category} ({c.source}, {c.confidence:.2f}): {c.why} [evidence: {', '.join(c.evidence)}]" for c in cands
+            )
+            or "(none)"
+        )
         ev_text = "\n".join(f"[{e.id}] ({e.source}) {e.text}" for e in diag.evidence)
-        user = prompt.render_user(run=f"{run.id} ({run.status})", categories=", ".join(cats), candidates=cand_text, evidence=ev_text)
-        req = ModelRequest(task="triage", system=prompt.system, messages=[Message("user", [Block.t(user)])], tools=[RECORD_DIAGNOSIS],
-                           tool_choice="record_diagnosis", max_tokens=900, prompt_id=prompt.id, prompt_version=prompt.version, data_scope="internal")
+        user = prompt.render_user(
+            run=f"{run.id} ({run.status})", categories=", ".join(cats), candidates=cand_text, evidence=ev_text
+        )
+        req = ModelRequest(
+            task="triage",
+            system=prompt.system,
+            messages=[Message("user", [Block.t(user)])],
+            tools=[RECORD_DIAGNOSIS],
+            tool_choice="record_diagnosis",
+            max_tokens=900,
+            prompt_id=prompt.id,
+            prompt_version=prompt.version,
+            data_scope="internal",
+        )
         budget = Budget(limit_usd=float(self.router.routing.get("max_cost_usd_per_request", 0.2)))
         try:
             routed = await self.router.call(req, _parse, budget)

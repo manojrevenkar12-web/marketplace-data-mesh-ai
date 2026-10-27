@@ -29,7 +29,8 @@ def screen(text: str) -> Screened:
     if not text:
         return Screened("", [])
     sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
-    kept, flagged = [], []
+    kept: list[str] = []
+    flagged: list[str] = []
     for s in sentences:
         (flagged if INJECTION.search(s) else kept).append(s)
     return Screened(" ".join(k for k in kept if k.strip()).strip(), [f.strip() for f in flagged if f.strip()])

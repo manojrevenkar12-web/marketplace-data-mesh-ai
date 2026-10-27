@@ -17,18 +17,46 @@ from datetime import date, timedelta
 from typing import Any
 
 COUNTRIES = {
-    "germany": "DE", "deutschland": "DE", "german": "DE", "italy": "IT", "italia": "IT", "italian": "IT", "netherlands": "NL",
-    "dutch": "NL", "holland": "NL", "belgium": "BE", "belgian": "BE", "austria": "AT", "österreich": "AT", "austrian": "AT",
-    "france": "FR", "french": "FR", "spain": "ES", "spanish": "ES", "luxembourg": "LU",
+    "germany": "DE",
+    "deutschland": "DE",
+    "german": "DE",
+    "italy": "IT",
+    "italia": "IT",
+    "italian": "IT",
+    "netherlands": "NL",
+    "dutch": "NL",
+    "holland": "NL",
+    "belgium": "BE",
+    "belgian": "BE",
+    "austria": "AT",
+    "österreich": "AT",
+    "austrian": "AT",
+    "france": "FR",
+    "french": "FR",
+    "spain": "ES",
+    "spanish": "ES",
+    "luxembourg": "LU",
 }
 CODES = {"DE", "IT", "NL", "BE", "AT", "FR", "ES", "LU"}
 MAKES = ["Volkswagen", "BMW", "Mercedes-Benz", "Audi", "Fiat", "Renault", "Tesla", "Skoda", "Toyota"]
 MAKE_ALIASES = {"vw": "Volkswagen", "mercedes": "Mercedes-Benz", "benz": "Mercedes-Benz", "škoda": "Skoda"}
-MONTHS = {m: i + 1 for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
-                                           "september", "october", "november", "december"])}
+MONTHS = {
+    m: i + 1
+    for i, m in enumerate(
+        ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+    )
+}
 CHANNELS = {"email": "email", "e-mail": "email", "call": "call", "phone call": "call", "calls": "call", "chat": "chat"}
-FUELS = {"electric": "electric", "ev": "electric", "evs": "electric", "diesel": "diesel", "petrol": "petrol", "gasoline": "petrol",
-         "hybrid": "hybrid", "lpg": "lpg"}
+FUELS = {
+    "electric": "electric",
+    "ev": "electric",
+    "evs": "electric",
+    "diesel": "diesel",
+    "petrol": "petrol",
+    "gasoline": "petrol",
+    "hybrid": "hybrid",
+    "lpg": "lpg",
+}
 TIERS = ["basic", "pro", "premium"]
 RATINGS = ["great", "good", "fair", "high"]
 
@@ -55,7 +83,10 @@ def draft(prompt_text: str) -> Draft:
     if not latest or latest == "no" or not datasets:
         return Draft(False, explanation="No data to answer from.", missing="a dataset with data")
     tables = {d["table"]: {c["name"] for c in d["columns"]} for d in datasets}
-    latest_of = {d["table"]: (re.search(r"latest (\d{4}-\d{2}-\d{2})", d.get("partition", "")) or [None, latest])[1] for d in datasets}
+    latest_of: dict[str, str] = {}
+    for d in datasets:
+        m = re.search(r"latest (\d{4}-\d{2}-\d{2})", d.get("partition", ""))
+        latest_of[d["table"]] = m.group(1) if m else latest
     q = question.lower()
     period = _period(q, latest)
     filters = _filters(q, question)
@@ -67,7 +98,9 @@ def draft(prompt_text: str) -> Draft:
         return table in tables and all(c in tables[table] for c in cols)
 
     measure: tuple[str, str, str, list[str]] | None = None  # (table, select expression, label, extra where)
-    if re.search(r"leads?\s+per\s+listing|lead rate|leads/listing", q) and has("leads.dealer_lead_performance", "leads_per_listing"):
+    if re.search(r"leads?\s+per\s+listing|lead rate|leads/listing", q) and has(
+        "leads.dealer_lead_performance", "leads_per_listing"
+    ):
         measure = ("leads.dealer_lead_performance", "round(avg(leads_per_listing), 3)", "avg_leads_per_listing", [])
     elif re.search(r"\b(leads?|enquir|inquir|anfrage|contact requests?)", q):
         if has("leads.leads", "lead_id"):
@@ -75,9 +108,12 @@ def draft(prompt_text: str) -> Draft:
         elif has("leads.dealer_lead_performance", "leads"):
             measure = ("leads.dealer_lead_performance", "sum(leads)", "leads", [])
     elif re.search(r"active (listings|stock|cars)|\bstock\b|inventory|bestand|online listings|listings online|supply", q) and has(
-            "listings.active_listings_daily", "active_listings"):
+        "listings.active_listings_daily", "active_listings"
+    ):
         measure = ("listings.active_listings_daily", "sum(active_listings)", "active_listings", [])
-    elif re.search(r"price rating|rated|rating|great deal|good deal|preisbewertung", q) and has("pricing.price_ratings", "rating"):
+    elif re.search(r"price rating|rated|rating|great deal|good deal|preisbewertung", q) and has(
+        "pricing.price_ratings", "rating"
+    ):
         if group is None and not any(r in q for r in RATINGS):
             group = "rating"
         measure = ("pricing.price_ratings", "count(*)", "listings", [])
@@ -89,22 +125,32 @@ def draft(prompt_text: str) -> Draft:
             measure = ("listings.active_listings_daily", "round(avg(median_price_eur), 2)", "median_price_eur", [])
     elif re.search(r"\bsold\b|sales of cars|cars sold", q) and has("listings.listing_events", "event_type"):
         measure = ("listings.listing_events", "count(*)", "sold", ["event_type = 'sold'"])
-    elif re.search(r"new listings|listings (were )?(created|added|posted)|newly listed|new ads|listed", q) and has("listings.listing_events", "event_type"):
+    elif re.search(r"new listings|listings (were )?(created|added|posted)|newly listed|new ads|listed", q) and has(
+        "listings.listing_events", "event_type"
+    ):
         measure = ("listings.listing_events", "count(*)", "new_listings", ["event_type = 'created'"])
     elif re.search(r"\bdealers?\b|händler|haendler", q) and has("dealers.dealers", "dealer_id"):
         if re.search(r"e-?mail|phone|contact", q) and not has("dealers.dealers", "contact_email"):
-            return Draft(False, explanation="Dealer contact details are not among the columns you can read.",
-                         missing="contact columns of dealers.dealers")
+            return Draft(
+                False,
+                explanation="Dealer contact details are not among the columns you can read.",
+                missing="contact columns of dealers.dealers",
+            )
         if re.search(r"e-?mail|phone|contact", q) and has("dealers.dealers", "contact_email"):
-            cols = [c for c in ("dealer_id", "dealer_name", "contact_email", "contact_phone") if has("dealers.dealers", c)]
+            contact_cols = [
+                c for c in ("dealer_id", "dealer_name", "contact_email", "contact_phone") if has("dealers.dealers", c)
+            ]
             where = [f"dt = DATE '{latest_of['dealers.dealers']}'", *_where(filters, tables["dealers.dealers"])]
-            sql = f"SELECT {', '.join(cols)} FROM dealers.dealers WHERE {' AND '.join(where)} ORDER BY dealer_id"
+            sql = f"SELECT {', '.join(contact_cols)} FROM dealers.dealers WHERE {' AND '.join(where)} ORDER BY dealer_id"
             return Draft(True, sql, ["dealers.dealers"], "Dealer contact details on the latest snapshot.")
         measure = ("dealers.dealers", "count(DISTINCT dealer_id)", "dealers", [])
         period = (latest_of["dealers.dealers"], latest_of["dealers.dealers"])  # a daily snapshot: count on one day
     if measure is None:
-        return Draft(False, explanation="I could not map this question onto the datasets shown.",
-                     missing="a measure I recognise in the datasets you can read")
+        return Draft(
+            False,
+            explanation="I could not map this question onto the datasets shown.",
+            missing="a measure I recognise in the datasets you can read",
+        )
     table, expr, label, extra = measure
     cols = tables[table]
     if latest_of.get(table) and latest_of[table] != latest and period == (latest, latest):

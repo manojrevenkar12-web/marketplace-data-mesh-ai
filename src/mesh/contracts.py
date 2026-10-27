@@ -9,7 +9,7 @@ the inputs and the SQL transform. ``lint`` checks one contract on its own and ag
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -97,7 +97,7 @@ class Contract(_M):
     def column_names(self) -> list[str]:
         return [c.name for c in self.columns]
 
-    def schema(self) -> dict[str, str]:
+    def table_schema(self) -> dict[str, str]:
         """Column -> type, with the partition column, as the query engine sees the table."""
         return {**{c.name: c.type for c in self.columns}, self.partition: PARTITION_TYPE}
 
@@ -134,7 +134,7 @@ class Registry:
     def __contains__(self, product: object) -> bool:
         return product in self.contracts
 
-    def __iter__(self):  # type: ignore[no-untyped-def]
+    def __iter__(self) -> Iterator[Contract]:
         return iter(self.contracts.values())
 
     def order(self) -> list[str]:
@@ -248,7 +248,10 @@ def lint(c: Contract, registry: Registry, path: Path | None = None, sql: str | N
             elif registry[i].status == "deprecated":
                 err("inputs", f"input '{i}' is deprecated", "warn")
             elif registry[i].sla.freshness_hours > c.sla.freshness_hours:
-                err("sla", f"freshness {c.sla.freshness_hours} h is tighter than input '{i}' ({registry[i].sla.freshness_hours} h)")
+                err(
+                    "sla",
+                    f"freshness {c.sla.freshness_hours} h is tighter than input '{i}' ({registry[i].sla.freshness_hours} h)",
+                )
         text = sql if sql is not None else registry.sql.get(c.product)
         if not c.transform or text is None:
             err("transform", "a derived product needs its SQL transform next to the contract")
@@ -292,8 +295,14 @@ def _propagation(c: Contract, registry: Registry, sql: str) -> list[Problem]:
         for prod, src in sorted(sources):
             sc = reg[prod].column(src) if prod in reg else None
             if sc and SENSITIVITY_ORDER[sc.classification] > SENSITIVITY_ORDER[mine.classification]:
-                out.append(Problem(c.product, "classification", f"'{col}' is {mine.classification} but is computed from "
-                                                                 f"{prod}.{src} ({sc.classification}); classify it {sc.classification}"))
+                out.append(
+                    Problem(
+                        c.product,
+                        "classification",
+                        f"'{col}' is {mine.classification} but is computed from "
+                        f"{prod}.{src} ({sc.classification}); classify it {sc.classification}",
+                    )
+                )
     return out
 
 
@@ -383,9 +392,27 @@ def diff(old: Contract, new: Contract, old_sql: str | None = None, new_sql: str 
             ch.append(Change("became_required", p, n, f"'{n}' is now required", False, True))
         so, sn = SENSITIVITY_ORDER[o.classification], SENSITIVITY_ORDER[nw.classification]
         if sn > so:
-            ch.append(Change("classification_raised", p, n, f"'{n}' {o.classification} -> {nw.classification}", o.classification, nw.classification))
+            ch.append(
+                Change(
+                    "classification_raised",
+                    p,
+                    n,
+                    f"'{n}' {o.classification} -> {nw.classification}",
+                    o.classification,
+                    nw.classification,
+                )
+            )
         if sn < so:
-            ch.append(Change("classification_lowered", p, n, f"'{n}' {o.classification} -> {nw.classification}", o.classification, nw.classification))
+            ch.append(
+                Change(
+                    "classification_lowered",
+                    p,
+                    n,
+                    f"'{n}' {o.classification} -> {nw.classification}",
+                    o.classification,
+                    nw.classification,
+                )
+            )
         if nw.deprecated_on and not o.deprecated_on:
             ch.append(Change("column_deprecated", p, n, f"'{n}' deprecated from {nw.deprecated_on}", None, nw.deprecated_on))
     renamed = {r.name: a.name for r, a in renames}
@@ -425,7 +452,9 @@ def _looser(o: QualityCheck, n: QualityCheck) -> bool:
         return True
     if o.check == "accepted_values" and set(n.values or []) > set(o.values or []):
         return True
-    if o.check == "range" and ((o.min is not None and (n.min is None or n.min < o.min)) or (o.max is not None and (n.max is None or n.max > o.max))):
+    if o.check == "range" and (
+        (o.min is not None and (n.min is None or n.min < o.min)) or (o.max is not None and (n.max is None or n.max > o.max))
+    ):
         return True
     if o.check == "null_share" and (n.max or 0) > (o.max or 0):
         return True

@@ -46,7 +46,9 @@ def span(name: str, **attributes: Any) -> Iterator[trace.Span]:
         yield s
 
 
-def model_call_attributes(task: str, model: str, provider: str, prompt_id: str, prompt_version: int, data_scope: str) -> dict[str, Any]:
+def model_call_attributes(
+    task: str, model: str, provider: str, prompt_id: str, prompt_version: int, data_scope: str
+) -> dict[str, Any]:
     return {
         "langfuse.observation.type": "generation",
         "gen_ai.operation.name": "chat",

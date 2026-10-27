@@ -12,8 +12,16 @@ from mesh.query import Plan, QueryEngine, QueryRejected
 
 
 class AthenaEngine:
-    def __init__(self, engine: QueryEngine, client: Any, workgroup_of: Callable[[str, str], str], output: str,
-                 sleep: Callable[[float], None] = time.sleep, poll_seconds: float = 0.5, timeout_seconds: float = 120):
+    def __init__(
+        self,
+        engine: QueryEngine,
+        client: Any,
+        workgroup_of: Callable[[str, str], str],
+        output: str,
+        sleep: Callable[[float], None] = time.sleep,
+        poll_seconds: float = 0.5,
+        timeout_seconds: float = 120,
+    ):
         self.engine = engine
         self.client = client
         self.workgroup_of = workgroup_of
@@ -22,12 +30,16 @@ class AthenaEngine:
         self.poll = poll_seconds
         self.timeout = timeout_seconds
 
-    def run(self, sql: str, principal: str, purpose: str = "person", max_rows: int = 1000) -> tuple[Plan, list[str], list[list[str]]]:
+    def run(
+        self, sql: str, principal: str, purpose: str = "person", max_rows: int = 1000
+    ) -> tuple[Plan, list[str], list[list[str]]]:
         plan = self.engine.plan(sql, principal, purpose)  # type: ignore[arg-type]
         if not plan.ok:
             raise QueryRejected(plan)
         qid = self.client.start_query_execution(
-            QueryString=sql, WorkGroup=self.workgroup_of(principal, purpose), ResultConfiguration={"OutputLocation": self.output},
+            QueryString=sql,
+            WorkGroup=self.workgroup_of(principal, purpose),
+            ResultConfiguration={"OutputLocation": self.output},
         )["QueryExecutionId"]
         waited = 0.0
         while True:

@@ -8,8 +8,15 @@ from typing import Any
 
 from mesh.contracts import Contract
 
-GLUE_TYPES = {"string": "string", "int": "int", "bigint": "bigint", "double": "double", "boolean": "boolean", "date": "date",
-              "timestamp": "timestamp"}
+GLUE_TYPES = {
+    "string": "string",
+    "int": "int",
+    "bigint": "bigint",
+    "double": "double",
+    "boolean": "boolean",
+    "date": "date",
+    "timestamp": "timestamp",
+}
 
 
 def database_name(domain: str) -> str:
@@ -31,12 +38,24 @@ def table_input(c: Contract, prefix: str) -> dict[str, Any]:
         "Description": " ".join(c.description.split())[:2048],
         "Owner": c.owner,
         "TableType": "EXTERNAL_TABLE",
-        "Parameters": {"classification": "parquet", "mesh.contract_version": str(c.version), "mesh.owner": c.owner,
-                       "parquet.compression": "ZSTD", "projection.enabled": "false"},
+        "Parameters": {
+            "classification": "parquet",
+            "mesh.contract_version": str(c.version),
+            "mesh.owner": c.owner,
+            "parquet.compression": "ZSTD",
+            "projection.enabled": "false",
+        },
         "PartitionKeys": [{"Name": c.partition, "Type": "date", "Comment": "partition: the business day"}],
         "StorageDescriptor": {
-            "Columns": [{"Name": col.name, "Type": GLUE_TYPES[col.type], "Comment": (col.description or "")[:255],
-                         "Parameters": {"mesh.classification": col.classification}} for col in c.columns],
+            "Columns": [
+                {
+                    "Name": col.name,
+                    "Type": GLUE_TYPES[col.type],
+                    "Comment": (col.description or "")[:255],
+                    "Parameters": {"mesh.classification": col.classification},
+                }
+                for col in c.columns
+            ],
             "Location": location(prefix, c),
             "InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
             "OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
@@ -58,5 +77,7 @@ def publish_partition_request(c: Contract, prefix: str, dt: str) -> dict[str, An
     return {
         "DatabaseName": database_name(c.domain),
         "TableName": c.name,
-        "PartitionInputList": [{"Values": [dt], "StorageDescriptor": {**sd, "Location": f"{location(prefix, c)}{c.partition}={dt}/"}}],
+        "PartitionInputList": [
+            {"Values": [dt], "StorageDescriptor": {**sd, "Location": f"{location(prefix, c)}{c.partition}={dt}/"}}
+        ],
     }

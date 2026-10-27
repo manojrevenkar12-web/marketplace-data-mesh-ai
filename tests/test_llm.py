@@ -86,7 +86,14 @@ class Scripted:
 
 def ok(payload: dict[str, Any] | None = None) -> ModelResponse:
     return ModelResponse(
-        [Block("tool_use", tool_use_id="t1", name="record_diagnosis", input=payload or {"category": "late_drop", "evidence": ["E1"], "summary": "s", "next_steps": []})],
+        [
+            Block(
+                "tool_use",
+                tool_use_id="t1",
+                name="record_diagnosis",
+                input=payload or {"category": "late_drop", "evidence": ["E1"], "summary": "s", "next_steps": []},
+            )
+        ],
         "tool_use",
         Usage(1000, 200),
         "m",
@@ -113,7 +120,15 @@ def test_converse_request_matches_the_bedrock_service_model():
         "output": {
             "message": {
                 "role": "assistant",
-                "content": [{"toolUse": {"toolUseId": "t1", "name": "record_diagnosis", "input": {"category": "late_drop", "evidence": []}}}],
+                "content": [
+                    {
+                        "toolUse": {
+                            "toolUseId": "t1",
+                            "name": "record_diagnosis",
+                            "input": {"category": "late_drop", "evidence": []},
+                        }
+                    }
+                ],
             }
         },
         "stopReason": "tool_use",
@@ -199,7 +214,9 @@ def test_prompts_render_and_are_locked_to_their_regression_runs(tmp_path):
     lock = tmp_path / "prompts.lock"
     history = tmp_path / "history.jsonl"
     lock.write_text(json.dumps({q.id: {"version": q.version, "sha256": q.sha256} for q in all_prompts()}))
-    history.write_text("".join(json.dumps({"prompt_id": q.id, "version": q.version, "sha256": q.sha256}) + "\n" for q in all_prompts()))
+    history.write_text(
+        "".join(json.dumps({"prompt_id": q.id, "version": q.version, "sha256": q.sha256}) + "\n" for q in all_prompts())
+    )
     assert check_lock(lock, history) == []
     changed = json.loads(lock.read_text())
     changed["ask_sql"]["sha256"] = "0" * 64

@@ -45,7 +45,9 @@ def test_partitions_use_the_contract_in_force_on_their_day(tmp_path):
     reg = Registry.load()
     v = Versions(State(tmp_path), reg)
     v.bootstrap("2026-07-01")
-    text = reg.paths["leads.leads"].read_text().replace("version: 2", "version: 3").replace("name: channel", "name: contact_channel")
+    text = (
+        reg.paths["leads.leads"].read_text().replace("version: 2", "version: 3").replace("name: channel", "name: contact_channel")
+    )
     text = text.replace("column: channel", "column: contact_channel")
     v.publish(text, None, "2026-08-01", "team-leads", "rename channel", published="2026-08-01T15:00:00Z")
     assert v.registry_at("2026-07-31")["leads.leads"].column("channel") is not None

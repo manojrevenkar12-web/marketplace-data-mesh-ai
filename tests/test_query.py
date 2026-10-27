@@ -15,7 +15,9 @@ def test_hidden_columns_are_refused_and_stars_expand_to_readable_columns(platfor
     dt = last(platform, "leads.leads")
     plan = platform.engine.plan(f"SELECT buyer_email FROM leads.leads WHERE dt = DATE '{dt}'", "analysts-marketplace")
     assert not plan.ok and plan.denied[0].column == "buyer_email" and "pii" in plan.denied[0].reason
-    cte = platform.engine.plan(f"WITH x AS (SELECT contact_email FROM dealers.dealers WHERE dt = DATE '{dt}') SELECT * FROM x", "analysts-marketplace")
+    cte = platform.engine.plan(
+        f"WITH x AS (SELECT contact_email FROM dealers.dealers WHERE dt = DATE '{dt}') SELECT * FROM x", "analysts-marketplace"
+    )
     assert not cte.ok and cte.denied[0].column == "contact_email"
     r = platform.engine.run(f"SELECT * FROM leads.leads WHERE dt = DATE '{dt}' LIMIT 3", "analysts-marketplace")
     assert "buyer_email" not in r.columns and "buyer_phone" not in r.columns and "channel" in r.columns
@@ -53,8 +55,14 @@ def test_partition_pruning_cost_estimate_and_required_partition_filter(platform)
     assert len(parts) > 31
     unfiltered = platform.engine.plan("SELECT count(*) FROM listings.listing_events", "analysts-marketplace")
     assert not unfiltered.ok and any("add a filter on dt" in p for p in unfiltered.problems)
-    week = platform.engine.plan(f"SELECT make, avg(price_eur) FROM listings.listing_events WHERE dt BETWEEN DATE '{parts[-7]}' AND DATE '{parts[-1]}' GROUP BY make", "analysts-marketplace")
-    day = platform.engine.plan(f"SELECT make, avg(price_eur) FROM listings.listing_events WHERE dt = DATE '{parts[-1]}' GROUP BY make", "analysts-marketplace")
+    week = platform.engine.plan(
+        f"SELECT make, avg(price_eur) FROM listings.listing_events WHERE dt BETWEEN DATE '{parts[-7]}' AND DATE '{parts[-1]}' GROUP BY make",
+        "analysts-marketplace",
+    )
+    day = platform.engine.plan(
+        f"SELECT make, avg(price_eur) FROM listings.listing_events WHERE dt = DATE '{parts[-1]}' GROUP BY make",
+        "analysts-marketplace",
+    )
     assert week.ok and week.partitions["listings.listing_events"][0] == 7 and day.partitions["listings.listing_events"][0] == 1
     assert 0 < day.bytes_scanned < week.bytes_scanned
     wide = platform.engine.plan(f"SELECT * FROM listings.listing_events WHERE dt = DATE '{parts[-1]}'", "analysts-marketplace")

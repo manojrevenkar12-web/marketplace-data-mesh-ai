@@ -80,13 +80,17 @@ def test_terraform_inputs_grant_exactly_what_the_query_engine_allows():
         for c in reg:
             ta = pol.table_access(principal, c)
             assert _lf_columns(tfvars, principal, c.product) == set(ta.columns) - {c.partition}, (principal, c.product)
-            has_filter = any(f["principal"] == principal and f["table"] == c.name and f["domain"] == c.domain for f in tfvars["cell_filters"])
+            has_filter = any(
+                f["principal"] == principal and f["table"] == c.name and f["domain"] == c.domain for f in tfvars["cell_filters"]
+            )
             assert has_filter == (ta.row_filter is not None), (principal, c.product)
 
 
 def test_generated_files_are_up_to_date():
     reg = Registry.load()
-    assert (ROOT / "infra" / "terraform" / "products.auto.tfvars.json").read_text() == dumps(render(reg, AccessPolicy())), "run mesh infra render"
+    assert (ROOT / "infra" / "terraform" / "products.auto.tfvars.json").read_text() == dumps(render(reg, AccessPolicy())), (
+        "run mesh infra render"
+    )
     assert (ROOT / "dags" / "mesh_daily.py").read_text() == render_dag(reg), "run mesh dags render"
 
 
@@ -97,28 +101,50 @@ def test_terraform_parses_and_declares_every_generated_variable():
         with f.open() as fh:
             doc = hcl2.load(fh)
         for v in doc.get("variable", []):
-            variables |= {k.strip("\"") for k in v}
+            variables |= {k.strip('"') for k in v}
         for r in doc.get("resource", []):
-            resources |= {k.strip("\"") for k in r}
+            resources |= {k.strip('"') for k in r}
     tfvars = json.loads((ROOT / "infra" / "terraform" / "products.auto.tfvars.json").read_text())
     assert set(tfvars) <= variables
-    assert {"aws_lakeformation_permissions", "aws_lakeformation_data_cells_filter", "aws_glue_catalog_table", "aws_athena_workgroup",
-            "aws_mwaa_environment", "aws_lakeformation_resource_lf_tags"} <= resources
+    assert {
+        "aws_lakeformation_permissions",
+        "aws_lakeformation_data_cells_filter",
+        "aws_glue_catalog_table",
+        "aws_athena_workgroup",
+        "aws_mwaa_environment",
+        "aws_lakeformation_resource_lf_tags",
+    } <= resources
 
 
 def test_athena_runs_only_checked_queries(platform):
     client = boto3.client("athena", **KW)
     dt = platform.lake.partitions("leads.leads")[-1]
     sql = f"SELECT channel, count(*) AS n FROM leads.leads WHERE dt = DATE '{dt}' GROUP BY channel"
-    eng = AthenaEngine(platform.engine, client, lambda p, purpose: f"mesh-{purpose}", "s3://mesh-athena-results/person/", sleep=lambda s: None)
+    eng = AthenaEngine(
+        platform.engine, client, lambda p, purpose: f"mesh-{purpose}", "s3://mesh-athena-results/person/", sleep=lambda s: None
+    )
     with Stubber(client) as stub:
-        stub.add_response("start_query_execution", {"QueryExecutionId": "q1"},
-                          {"QueryString": sql, "WorkGroup": "mesh-person", "ResultConfiguration": {"OutputLocation": ANY}})
+        stub.add_response(
+            "start_query_execution",
+            {"QueryExecutionId": "q1"},
+            {"QueryString": sql, "WorkGroup": "mesh-person", "ResultConfiguration": {"OutputLocation": ANY}},
+        )
         stub.add_response("get_query_execution", {"QueryExecution": {"Status": {"State": "RUNNING"}}}, {"QueryExecutionId": "q1"})
-        stub.add_response("get_query_execution", {"QueryExecution": {"Status": {"State": "SUCCEEDED"}}}, {"QueryExecutionId": "q1"})
-        stub.add_response("get_query_results", {"ResultSet": {"Rows": [{"Data": [{"VarCharValue": "channel"}, {"VarCharValue": "n"}]},
-                                                                       {"Data": [{"VarCharValue": "email"}, {"VarCharValue": "10"}]}]}},
-                          {"QueryExecutionId": "q1", "MaxResults": ANY})
+        stub.add_response(
+            "get_query_execution", {"QueryExecution": {"Status": {"State": "SUCCEEDED"}}}, {"QueryExecutionId": "q1"}
+        )
+        stub.add_response(
+            "get_query_results",
+            {
+                "ResultSet": {
+                    "Rows": [
+                        {"Data": [{"VarCharValue": "channel"}, {"VarCharValue": "n"}]},
+                        {"Data": [{"VarCharValue": "email"}, {"VarCharValue": "10"}]},
+                    ]
+                }
+            },
+            {"QueryExecutionId": "q1", "MaxResults": ANY},
+        )
         plan, header, rows = eng.run(sql, "analysts-marketplace")
         assert header == ["channel", "n"] and rows == [["email", "10"]] and plan.ok
     with pytest.raises(QueryRejected):  # never reaches Athena: no stubbed call is consumed
