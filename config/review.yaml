@@ -1,0 +1,17 @@
+# What the change review blocks, what needs an approval, and how much a dry run may differ before it is shown.
+block:
+  - column_removed          # unless the column was deprecated for the deprecation window and nobody reads it
+  - column_renamed
+  - type_changed
+  - partition_changed
+  - classification_lowered  # needs data governance, not a code review
+needs_approval:
+  - became_optional
+  - classification_raised   # people lose access: the owner confirms
+  - quality_removed
+  - quality_loosened
+  - sla_loosened
+  - product_deprecated
+dry_run_days: 3             # a changed transform is run on the last N published days and compared
+dry_run_row_change_warn: 0.10
+governance_approvers: [data-governance]

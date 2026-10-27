@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marketplace-data-mesh-ai"
+version = "0.1.0"
+description = "A self-service data mesh platform for a car marketplace on AWS, with AI built into its catalog, queries, pipelines and code review."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "duckdb>=1.1",
+  "pyarrow>=17",
+  "sqlglot>=25",
+  "pydantic>=2.8",
+  "pyyaml>=6",
+  "numpy>=1.26",
+  "scikit-learn>=1.5",
+  "boto3>=1.35",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "httpx>=0.27",
+  "psycopg[binary]>=3.2",
+  "psycopg_pool>=3.2",
+  "mcp>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.7", "mypy>=1.13", "moto>=5", "types-PyYAML"]
+
+[project.scripts]
+mesh = "mesh.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mesh = ["prompts/*.yaml", "service/migrations/*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = [
+  "db: needs PostgreSQL (MESH_TEST_DATABASE_URL)",
+  "airflow: needs apache-airflow installed",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+extend-exclude = ["web", "dags"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PT"]
+ignore = ["E501", "PT011", "PT018", "RUF001", "RUF002", "RUF003", "B008"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["mesh"]
+mypy_path = "src"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true

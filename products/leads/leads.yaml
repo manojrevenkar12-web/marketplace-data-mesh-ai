@@ -1,0 +1,29 @@
+product: leads.leads
+domain: leads
+owner: team-leads
+owner_contact: "#data-leads"
+kind: source
+version: 2
+description: >
+  Buyer enquiries sent to a seller about a listing, by email, phone call or chat. One row per lead.
+  Contains the buyer's contact details.
+tags: [lead, Anfrage, enquiry, contact request, buyer]
+partition: dt
+sla: {freshness_hours: 30}
+source: {system: lead-service, format: jsonl}
+columns:
+  - {name: lead_id, type: string, required: true, classification: internal, description: "Id of the lead"}
+  - {name: listing_id, type: string, required: true, classification: internal, description: "Listing the buyer asked about"}
+  - {name: dealer_id, type: string, required: false, classification: internal, description: "Dealer who received the lead; empty for private sellers"}
+  - {name: channel, type: string, required: true, classification: public, description: "email, call or chat"}
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code of the listing"}
+  - {name: buyer_email, type: string, required: false, classification: pii, description: "Buyer's email address"}
+  - {name: buyer_phone, type: string, required: false, classification: pii, description: "Buyer's phone number"}
+  - {name: created_ts, type: timestamp, required: true, classification: internal, description: "When the lead was sent (UTC)"}
+quality:
+  - {check: not_null, column: lead_id, severity: error}
+  - {check: unique, column: lead_id, severity: error}
+  - {check: not_null, column: listing_id, severity: error}
+  - {check: accepted_values, column: channel, values: [email, call, chat], severity: error}
+  - {check: null_share, column: dealer_id, max: 0.6, severity: error}
+  - {check: volume, min_ratio: 0.5, max_ratio: 2.0, severity: error}

@@ -1,0 +1,28 @@
+product: dealers.dealers
+domain: dealers
+owner: team-dealers
+owner_contact: "#data-dealers"
+kind: source
+version: 2
+description: >
+  Dealers registered on the marketplace with their subscription tier and contact details. One row per
+  dealer per day (a daily snapshot from the dealer CRM).
+tags: [dealer, Händler, customer, subscription, tier]
+partition: dt
+sla: {freshness_hours: 30}
+source: {system: dealer-crm, format: jsonl}
+columns:
+  - {name: dealer_id, type: string, required: true, classification: internal, description: "Id of the dealer"}
+  - {name: dealer_name, type: string, required: true, classification: internal, description: "Trading name"}
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code"}
+  - {name: city, type: string, required: true, classification: internal, description: "City of the main branch"}
+  - {name: tier, type: string, required: true, classification: internal, description: "Subscription tier basic, pro or premium"}
+  - {name: contact_email, type: string, required: false, classification: pii, description: "Email of the dealer's contact person"}
+  - {name: contact_phone, type: string, required: false, classification: pii, description: "Phone of the dealer's contact person"}
+  - {name: vat_id, type: string, required: false, classification: confidential, description: "VAT identification number"}
+  - {name: onboarded_on, type: date, required: true, classification: internal, description: "Date the dealer joined"}
+quality:
+  - {check: not_null, column: dealer_id, severity: error}
+  - {check: unique, column: dealer_id, severity: error}
+  - {check: accepted_values, column: tier, values: [basic, pro, premium], severity: error}
+  - {check: volume, min_ratio: 0.8, max_ratio: 1.25, severity: error}

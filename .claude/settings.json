@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {"type": "command", "command": ".venv/bin/python -m mesh.hooks", "timeout": 60}
+        ]
+      }
+    ]
+  }
+}

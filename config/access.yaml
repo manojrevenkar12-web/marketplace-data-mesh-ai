@@ -1,0 +1,62 @@
+# Who may read what, as Lake Formation tag-based access control (LF-TBAC).
+#
+# Tables carry the tag `domain`; columns carry `sensitivity` (from the contract's classification). A grant
+# gives SELECT on every column whose tags match its expression. A grant may add a row filter, which becomes a
+# Lake Formation data cells filter on each matching table that has the filtered column. The platform's query
+# engine and the Terraform in infra/ are both generated from this file and the contracts, so what the
+# assistant allows and what Athena enforces are the same rules.
+
+lf_tags:
+  domain: [listings, dealers, leads, pricing]
+  sensitivity: [public, internal, confidential, pii]
+
+principals:
+  platform-pipelines:
+    description: The platform's pipeline role (MWAA). Reads and writes every product.
+    kind: service
+    grants:
+      - {domain: "*", sensitivity: "*"}
+  team-listings:
+    description: Listings domain team
+    grants:
+      - {domain: [listings], sensitivity: "*"}
+      - {domain: [dealers, leads, pricing], sensitivity: [public, internal]}
+  team-dealers:
+    description: Dealers domain team
+    grants:
+      - {domain: [dealers], sensitivity: "*"}
+      - {domain: [listings, leads, pricing], sensitivity: [public, internal]}
+  team-leads:
+    description: Leads domain team
+    grants:
+      - {domain: [leads], sensitivity: "*"}
+      - {domain: [listings, dealers, pricing], sensitivity: [public, internal]}
+  team-pricing:
+    description: Pricing data science
+    grants:
+      - {domain: [pricing], sensitivity: "*"}
+      - {domain: [listings, dealers, leads], sensitivity: [public, internal]}
+  analysts-marketplace:
+    description: Central analytics and business intelligence
+    grants:
+      - {domain: "*", sensitivity: [public, internal]}
+  dealer-success-de:
+    description: Dealer success managers for Germany; may contact dealers and see their leads, German rows only
+    grants:
+      - {domain: [dealers, leads], sensitivity: [public, internal, pii], row_filter: "country = 'DE'"}
+      - {domain: [listings], sensitivity: [public]}
+  partner-reporting:
+    description: Reporting for an external market-data partner; public columns of listings only
+    kind: external
+    grants:
+      - {domain: [listings], sensitivity: [public]}
+
+users:
+  anna.analyst: {principal: analysts-marketplace, name: Anna Berger}
+  lukas.leads: {principal: team-leads, name: Lukas Schmid}
+  dana.dealers: {principal: team-dealers, name: Dana Rossi}
+  lena.listings: {principal: team-listings, name: Lena Vogel}
+  piet.pricing: {principal: team-pricing, name: Piet de Vries}
+  sofia.success: {principal: dealer-success-de, name: Sofia Wagner}
+  max.partner: {principal: partner-reporting, name: Max Keller}
+  platform.bot: {principal: platform-pipelines, name: Platform pipelines}

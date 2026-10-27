@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "mesh": {
+      "command": ".venv/bin/mesh",
+      "args": ["mcp"],
+      "env": {"MESH_USER": "${MESH_USER:-lukas.leads}"}
+    }
+  }
+}

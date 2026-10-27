@@ -1,0 +1,9 @@
+# Business terms people use, in English and German, and the data they mean. Owned by data governance.
+terms:
+  - {term: listing, also: [Inserat, ad, Anzeige, car for sale], means: "a car offered for sale", products: [listings.listing_events, listings.active_listings_daily]}
+  - {term: active stock, also: [Bestand, inventory, supply, online listings], means: "listings online at the end of a day", products: [listings.active_listings_daily]}
+  - {term: dealer, also: [Händler, Haendler, customer, professional seller], means: "a business selling cars on the marketplace", products: [dealers.dealers]}
+  - {term: lead, also: [Anfrage, enquiry, inquiry, contact request], means: "a buyer contacting a seller about a listing", products: [leads.leads, leads.dealer_lead_performance]}
+  - {term: leads per listing, also: [lead rate, LPL], means: "leads a dealer received divided by its listings online", products: [leads.dealer_lead_performance]}
+  - {term: price rating, also: [Preisbewertung, deal rating, price label], means: "great, good, fair or high, from the asking price against comparable cars", products: [pricing.price_ratings]}
+  - {term: tier, also: [package, subscription, Paket], means: "the dealer's subscription: basic, pro or premium", products: [dealers.dealers, leads.dealer_lead_performance]}

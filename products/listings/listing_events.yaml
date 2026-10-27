@@ -1,0 +1,35 @@
+product: listings.listing_events
+domain: listings
+owner: team-listings
+owner_contact: "#data-listings"
+kind: source
+version: 3
+description: >
+  Every change to a car listing on the marketplace: created, price changed, sold or removed. One row per
+  event. Source-aligned: written as the listing service emits it, cleaned and typed.
+tags: [listing, Inserat, ad, vehicle, price]
+partition: dt
+sla: {freshness_hours: 30}
+source: {system: listing-service, format: jsonl}
+columns:
+  - {name: event_id, type: string, required: true, classification: internal, description: "Unique id of the event"}
+  - {name: listing_id, type: string, required: true, classification: internal, description: "Id of the listing"}
+  - {name: dealer_id, type: string, required: false, classification: internal, description: "Dealer who owns the listing; empty for private sellers"}
+  - {name: seller_type, type: string, required: true, classification: public, description: "dealer or private"}
+  - {name: make, type: string, required: true, classification: public, description: "Manufacturer, e.g. Volkswagen"}
+  - {name: model, type: string, required: true, classification: public, description: "Model name, e.g. Golf"}
+  - {name: first_registration_year, type: int, required: true, classification: public, description: "Year of first registration"}
+  - {name: mileage_km, type: int, required: true, classification: public, description: "Odometer reading in kilometres"}
+  - {name: fuel, type: string, required: true, classification: public, description: "petrol, diesel, electric, hybrid or lpg"}
+  - {name: price_eur, type: double, required: true, classification: public, description: "Asking price in euros"}
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code of the listing"}
+  - {name: event_type, type: string, required: true, classification: public, description: "created, price_change, sold or removed"}
+  - {name: event_ts, type: timestamp, required: true, classification: internal, description: "When the event happened (UTC)"}
+quality:
+  - {check: not_null, column: event_id, severity: error}
+  - {check: unique, column: event_id, severity: error}
+  - {check: accepted_values, column: event_type, values: [created, price_change, sold, removed], severity: error}
+  - {check: accepted_values, column: fuel, values: [petrol, diesel, electric, hybrid, lpg], severity: warn}
+  - {check: range, column: price_eur, min: 100, max: 2000000, severity: error}
+  - {check: range, column: mileage_km, min: 0, max: 1500000, severity: warn}
+  - {check: volume, min_ratio: 0.5, max_ratio: 2.0, severity: error}

@@ -1,0 +1,25 @@
+product: leads.dealer_lead_performance
+domain: leads
+owner: team-leads
+owner_contact: "#data-leads"
+kind: derived
+version: 1
+description: >
+  Leads each dealer received per day, with the dealer's tier and the number of listings it had online,
+  so sales and dealer success can compare lead performance across dealers and tiers.
+tags: [dealer performance, leads per listing, KPI, dealer success]
+partition: dt
+sla: {freshness_hours: 34}
+inputs: [leads.leads, dealers.dealers, listings.listing_events]
+transform: dealer_lead_performance.sql
+columns:
+  - {name: dealer_id, type: string, required: true, classification: internal, description: "Id of the dealer"}
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code of the dealer"}
+  - {name: tier, type: string, required: true, classification: internal, description: "Subscription tier"}
+  - {name: leads, type: bigint, required: true, classification: internal, description: "Leads received that day"}
+  - {name: listings_online, type: bigint, required: true, classification: internal, description: "Listings the dealer had online that day"}
+  - {name: leads_per_listing, type: double, required: true, classification: internal, description: "leads divided by listings_online"}
+quality:
+  - {check: not_null, column: dealer_id, severity: error}
+  - {check: range, column: leads_per_listing, min: 0, max: 100, severity: error}
+  - {check: volume, min_ratio: 0.5, max_ratio: 2.0, severity: warn}

@@ -1,0 +1,23 @@
+# Platform settings. Code reads them through mesh.config; nothing here is duplicated in code.
+
+lake:
+  bucket_prefix: mesh-lake          # s3://<prefix>-<domain>/<product>/dt=YYYY-MM-DD/
+  staging: _staging                  # write-audit-publish: written here, published after quality passes
+
+query:
+  max_rows: 1000                     # rows returned to a person or an assistant
+  price_usd_per_tb: 5.0              # Athena on-demand price per TB scanned
+  # Athena workgroup BytesScannedCutoffPerQuery for people; the assistant has its own, lower limit.
+  bytes_limit: {person: 2000000000, assistant: 500000000, service: 50000000000}
+  # Tables with more partitions than this must be queried with a filter on the partition column.
+  require_partition_filter_over: 31
+
+contracts:
+  deprecation_days: 30               # a removed or renamed column must be deprecated this long first
+  allowed_types: [string, int, bigint, double, boolean, date, timestamp]
+
+quality:
+  volume_baseline_days: 7            # volume checks compare with the median of the previous N days
+
+freshness:
+  check_at_hour_utc: 8               # SLA monitor runs daily at this hour

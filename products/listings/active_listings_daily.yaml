@@ -1,0 +1,23 @@
+product: listings.active_listings_daily
+domain: listings
+owner: team-listings
+owner_contact: "#data-listings"
+kind: derived
+version: 1
+description: >
+  Stock on the marketplace at the end of each day: number of active listings and median asking price by
+  country and make. Use it for supply and price-level questions.
+tags: [stock, supply, Bestand, inventory, median price]
+partition: dt
+sla: {freshness_hours: 32}
+inputs: [listings.listing_events]
+transform: active_listings_daily.sql
+columns:
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code"}
+  - {name: make, type: string, required: true, classification: public, description: "Manufacturer"}
+  - {name: active_listings, type: bigint, required: true, classification: public, description: "Listings online at the end of the day"}
+  - {name: median_price_eur, type: double, required: true, classification: public, description: "Median asking price of active listings"}
+quality:
+  - {check: not_null, column: country, severity: error}
+  - {check: range, column: active_listings, min: 0, max: 10000000, severity: error}
+  - {check: volume, min_ratio: 0.5, max_ratio: 2.0, severity: warn}

@@ -1,0 +1,17 @@
+# Failure categories, who acts on each, and the runbook step. The triage routes a failed run to the team that
+# can fix the cause, which is often not the team that owns the failed product.
+categories:
+  late_drop: {acts: source_owner, runbook: "docs/RUNBOOK.md#late-drop", step: "Ask the source system's team when the drop will arrive; the platform re-runs the day and its consumers when it lands."}
+  schema_drift: {acts: source_owner, runbook: "docs/RUNBOOK.md#schema-drift", step: "The source system changed a field name without a contract change. Ask its team to restore the field, or propose a contract change through review."}
+  type_drift: {acts: source_owner, runbook: "docs/RUNBOOK.md#type-drift", step: "The source sent values of the wrong type. Ask its team to fix the export and redeliver the day."}
+  null_spike: {acts: product_owner, runbook: "docs/RUNBOOK.md#quality", step: "The partition is quarantined. Find the producer bug (often tracking), redeliver, re-run."}
+  duplicates: {acts: product_owner, runbook: "docs/RUNBOOK.md#quality", step: "The partition is quarantined. Deduplicate at the source (outbox replay?) and redeliver."}
+  volume_drop: {acts: product_owner, runbook: "docs/RUNBOOK.md#quality", step: "Far fewer rows than usual: check for a tracking outage before publishing anything."}
+  upstream_contract_change: {acts: upstream_owner, runbook: "docs/RUNBOOK.md#contract-break", step: "An input's contract changed incompatibly. The upstream team reverts or deprecates first; consumers then migrate."}
+  code_change: {acts: product_owner, runbook: "docs/RUNBOOK.md#code-change", step: "The product's own transform changed just before the failure. Revert or fix it; the change review would have shown the dry-run error."}
+  access_denied: {acts: platform, runbook: "docs/RUNBOOK.md#access-denied", step: "The pipeline role lost a Lake Formation or S3 permission. Check the last Terraform apply and restore the grant."}
+  resource_exhausted: {acts: platform, runbook: "docs/RUNBOOK.md#resources", step: "The worker ran out of memory. Re-run on a larger worker, then look at the query plan."}
+  transient_infra: {acts: platform, runbook: "docs/RUNBOOK.md#transient", step: "AWS throttled or failed briefly beyond the retries. Re-run; if it repeats, raise retries or spread the load."}
+platform_team: team-platform
+lookback_days: 7          # contract and transform changes this recent are evidence
+classifier_min_probability: 0.55

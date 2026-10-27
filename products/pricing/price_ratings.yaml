@@ -1,0 +1,26 @@
+product: pricing.price_ratings
+domain: pricing
+owner: team-pricing
+owner_contact: "#data-pricing"
+kind: derived
+version: 1
+description: >
+  The price rating shown on each listing created that day (great, good, fair or high), from the asking
+  price compared with similar cars: same make, model, registration year band and mileage band.
+tags: [price rating, Preisbewertung, market value, deal rating]
+partition: dt
+sla: {freshness_hours: 34}
+inputs: [listings.listing_events]
+transform: price_ratings.sql
+columns:
+  - {name: listing_id, type: string, required: true, classification: internal, description: "Id of the listing"}
+  - {name: country, type: string, required: true, classification: public, description: "ISO country code"}
+  - {name: make, type: string, required: true, classification: public, description: "Manufacturer"}
+  - {name: model, type: string, required: true, classification: public, description: "Model"}
+  - {name: price_eur, type: double, required: true, classification: public, description: "Asking price"}
+  - {name: reference_price_eur, type: double, required: true, classification: internal, description: "Median price of comparable listings"}
+  - {name: rating, type: string, required: true, classification: public, description: "great, good, fair or high"}
+quality:
+  - {check: not_null, column: listing_id, severity: error}
+  - {check: accepted_values, column: rating, values: [great, good, fair, high], severity: error}
+  - {check: volume, min_ratio: 0.3, max_ratio: 3.0, severity: warn}

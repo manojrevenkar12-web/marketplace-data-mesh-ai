@@ -1,0 +1,8 @@
+environment         = "prod"
+lake_admins         = ["arn:aws:iam::123456789012:role/platform-deploy"]
+api_image           = "123456789012.dkr.ecr.eu-central-1.amazonaws.com/mesh-api:2026-10-27"
+api_certificate_arn = "arn:aws:acm:eu-central-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+alarm_email         = "data-platform-oncall@example.com"
+principal_trust = {
+  "team-leads" = ["arn:aws:iam::123456789012:role/aws-reserved/sso.amazonaws.com/eu-central-1/AWSReservedSSO_DataLeads_0000000000000000"]
+}

@@ -1,0 +1,54 @@
+# Models, which task may use which model in which order, and where data of each classification may go.
+# Claude on Amazon Bedrock through the EU cross-region inference profiles keeps data in the EU. Prices are
+# USD per million tokens and only used for budgets and reports.
+models:
+  sonnet-eu:
+    provider: bedrock
+    model_id: eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+    region_group: eu
+    privacy: in_region
+    price_in: 3.0
+    price_out: 15.0
+  haiku-eu:
+    provider: bedrock
+    model_id: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+    region_group: eu
+    privacy: in_region
+    price_in: 1.0
+    price_out: 5.0
+  sonnet-direct:
+    provider: anthropic
+    model_id: claude-sonnet-4-5
+    region_group: vendor
+    privacy: vendor_api
+    price_in: 3.0
+    price_out: 15.0
+  simulated:
+    provider: simulated
+    model_id: simulated-v1
+    region_group: eu
+    privacy: local
+    price_as: haiku-eu
+
+tasks:
+  ask_sql: [sonnet-eu, haiku-eu, sonnet-direct]       # question -> SQL over the catalog
+  triage: [haiku-eu, sonnet-eu, sonnet-direct]         # failed run -> cause and next step
+  review: [haiku-eu, sonnet-eu, sonnet-direct]         # contract change -> review comment
+  describe: [haiku-eu, sonnet-eu]                      # draft dataset documentation
+
+# Where data of each classification may be sent. Prompts carry schemas, glossary text and logs, never rows
+# with personal data (mesh.ai.guard enforces that); "pii" is here so a mistake cannot leave the EU either.
+data_policies:
+  public: [eu, vendor]
+  internal: [eu, vendor]
+  confidential: [eu]
+  pii: [eu]
+
+routing:
+  attempts_per_model: 2
+  backoff_seconds: [0.5, 2.0]
+  timeout_seconds: 60
+  breaker_failures: 3
+  breaker_cooldown_seconds: 120
+  repair_attempts: 1
+  max_cost_usd_per_request: 0.20
