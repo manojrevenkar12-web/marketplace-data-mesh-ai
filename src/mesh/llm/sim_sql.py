@@ -97,6 +97,21 @@ def draft(prompt_text: str) -> Draft:
     def has(table: str, *cols: str) -> bool:
         return table in tables and all(c in tables[table] for c in cols)
 
+    if re.search(r"\b(revenue|turnover|profit|margin|umsatz|invoice|billing|salary|salaries|employees|weather)\b", q):
+        return Draft(False, explanation="None of the datasets shown has that measure.", missing="a dataset with that measure")
+    dealer = re.search(r"\b(D\d{4})\b", question)
+    if re.search(r"\b(which|list|who|names?|e-?mails?|phone)\b.*\bbuyers?\b|\bbuyers?\b.*\b(e-?mails?|phones?|contacts?)\b", q):
+        if not has("leads.leads", "buyer_email"):
+            return Draft(
+                False,
+                explanation="Buyer contact details are not among the columns you can read.",
+                missing="buyer contact columns of leads.leads",
+            )
+        where = [_dt_clause(period), *_where(filters, tables["leads.leads"])] + (
+            [f"dealer_id = '{dealer.group(1)}'"] if dealer else []
+        )
+        sql = f"SELECT buyer_email FROM leads.leads WHERE {' AND '.join(where)}"
+        return Draft(True, sql, ["leads.leads"], "Buyers who sent a lead" + (f" to {dealer.group(1)}" if dealer else "") + ".")
     measure: tuple[str, str, str, list[str]] | None = None  # (table, select expression, label, extra where)
     if re.search(r"leads?\s+per\s+listing|lead rate|leads/listing", q) and has(
         "leads.dealer_lead_performance", "leads_per_listing"
@@ -107,9 +122,9 @@ def draft(prompt_text: str) -> Draft:
             measure = ("leads.leads", "count(*)", "leads", [])
         elif has("leads.dealer_lead_performance", "leads"):
             measure = ("leads.dealer_lead_performance", "sum(leads)", "leads", [])
-    elif re.search(r"active (listings|stock|cars)|\bstock\b|inventory|bestand|online listings|listings online|supply", q) and has(
-        "listings.active_listings_daily", "active_listings"
-    ):
+    elif re.search(
+        r"\bactive( \w+)? (listings|stock|cars|ads)|\bstock\b|inventory|bestand|online listings|listings online|supply", q
+    ) and has("listings.active_listings_daily", "active_listings"):
         measure = ("listings.active_listings_daily", "sum(active_listings)", "active_listings", [])
     elif re.search(r"price rating|rated|rating|great deal|good deal|preisbewertung", q) and has(
         "pricing.price_ratings", "rating"
@@ -123,6 +138,8 @@ def draft(prompt_text: str) -> Draft:
             measure = ("listings.listing_events", fn, "price_eur", ["event_type = 'created'"])
         elif has("listings.active_listings_daily", "median_price_eur"):
             measure = ("listings.active_listings_daily", "round(avg(median_price_eur), 2)", "median_price_eur", [])
+    elif re.search(r"\bremoved\b|taken down|deleted listings|withdrawn", q) and has("listings.listing_events", "event_type"):
+        measure = ("listings.listing_events", "count(*)", "removed", ["event_type = 'removed'"])
     elif re.search(r"\bsold\b|sales of cars|cars sold", q) and has("listings.listing_events", "event_type"):
         measure = ("listings.listing_events", "count(*)", "sold", ["event_type = 'sold'"])
     elif re.search(r"new listings|listings (were )?(created|added|posted)|newly listed|new ads|listed", q) and has(
@@ -155,7 +172,7 @@ def draft(prompt_text: str) -> Draft:
     cols = tables[table]
     if latest_of.get(table) and latest_of[table] != latest and period == (latest, latest):
         period = (latest_of[table], latest_of[table])
-    if group and group not in cols and not (group == "dealer_id" and "dealer_id" in cols):
+    if group and group not in cols and group != "dt":
         return Draft(False, explanation=f"{table} has no {group} to break down by.", missing=f"{group} in {table}")
     where = [_dt_clause(period), *extra, *_where(filters, cols)]
     if top and group is None:
@@ -229,16 +246,17 @@ def _filters(q: str, original: str) -> dict[str, str]:
 
 
 def _group(q: str) -> str | None:
+    by = r"(by|per|for each|each|across|pro|nach|je)"
     pairs = [
-        (r"(by|per|for each|each|across)\s+(country|countries|market|markets)", "country"),
-        (r"(by|per|for each|each|across)\s+(make|makes|brand|brands|manufacturer)", "make"),
-        (r"(by|per|for each|each)\s+(tier|tiers|package|subscription)", "tier"),
-        (r"(by|per|for each|each)\s+(channel|channels)", "channel"),
-        (r"(by|per|for each|each)\s+(fuel|fuel type)", "fuel"),
-        (r"(by|per|for each|each)\s+(rating|ratings)", "rating"),
-        (r"(by|per|for each|each)\s+(model|models)", "model"),
-        (r"(by|per|for each|each)\s+(day|date)|daily|day by day|trend", "dt"),
-        (r"(by|per|for each|each)\s+dealers?|top\s+\d+\s+dealers?", "dealer_id"),
+        (rf"{by}\s+(country|countries|market|markets|land|ländern?)", "country"),
+        (rf"{by}\s+(make|makes|brand|brands|manufacturer|marke|marken|hersteller)", "make"),
+        (rf"{by}\s+(tier|tiers|package|subscription|paket|pakete)", "tier"),
+        (rf"{by}\s+(channel|channels|kanal)", "channel"),
+        (rf"{by}\s+(fuel|fuel type|kraftstoff)", "fuel"),
+        (rf"{by}\s+(rating|ratings|bewertung)", "rating"),
+        (rf"{by}\s+(model|models|modell)", "model"),
+        (rf"{by}\s+(day|date|tag)|daily|day by day|trend|täglich", "dt"),
+        (rf"{by}\s+(dealers?|händler)|top\s+\d+\s+dealers?", "dealer_id"),
     ]
     for pat, col in pairs:
         if re.search(pat, q):

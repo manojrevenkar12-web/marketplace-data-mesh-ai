@@ -205,6 +205,21 @@ def create_app(platform: Platform | None = None, pool: db.Pool | None = None) ->
             out["quality_results"] = [asdict(q) for q in p.state.quality(product, latest)][-len(c.quality) :] if latest else []
         return out
 
+    @app.get("/v1/contracts/{product}")
+    async def contract_files(product: str, request: Request, who: Caller = Depends(caller)) -> dict[str, Any]:
+        """The contract and transform files of a product as they are in the repository, to start a proposed change from."""
+        p = P(request)
+        if product not in p.registry:
+            raise HTTPException(404, f"no dataset {product}")
+        domain, name = product.split(".", 1)
+        out = []
+        for suffix in ("yaml", "sql"):
+            rel = f"products/{domain}/{name}.{suffix}"
+            path = config.repo_root() / rel
+            if path.exists():
+                out.append({"path": rel, "text": path.read_text()})
+        return {"product": product, "files": out}
+
     @app.post("/v1/ask")
     async def ask(
         body: AskIn, request: Request, who: Caller = Depends(caller), _: None = Depends(current_grants)
@@ -400,7 +415,13 @@ def create_app(platform: Platform | None = None, pool: db.Pool | None = None) ->
         path = config.reports_dir() / "eval" / "report.json"
         if not path.exists():
             raise HTTPException(404, "no evaluation report yet; run mesh eval")
-        return json.loads(path.read_text())
+        report = json.loads(path.read_text())
+        heldout = []
+        for first in sorted((config.reports_dir() / "heldout").glob("*/first_run.json")):
+            h = json.loads(first.read_text())
+            heldout.append({k: h.get(k) for k in ("set", "kind", "status", "ran_at", "headline")})
+        report["heldout"] = heldout
+        return report
 
     @app.get("/v1/glossary")
     async def glossary(who: Caller = Depends(caller)) -> list[dict[str, Any]]:

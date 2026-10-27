@@ -24,7 +24,7 @@ from mesh.llm.base import Block, Message, ModelRequest, ModelResponse
 from mesh.llm.prompts import load
 from mesh.llm.router import Budget, ModelRouter, Unavailable
 from mesh.llm.schemas import RECORD_QUERY, QueryDraft
-from mesh.query import Plan, QueryEngine
+from mesh.query import Plan, QueryEngine, QueryRejected
 from mesh.state import State
 
 Status = Literal["answered", "denied", "not_answerable", "rejected", "unavailable"]
@@ -212,7 +212,13 @@ class Asker:
                 ans.status = "rejected"
                 ans.message = "The drafted query could not run: " + "; ".join(plan.problems)
             return self._done(ans, t0, budget)
-        result = self.engine.run(draft.sql, principal, "assistant")
+        try:
+            result = self.engine.run(draft.sql, principal, "assistant")
+        except QueryRejected as e:
+            ans.status = "rejected"
+            ans.plan = e.plan.summary()
+            ans.message = "The drafted query could not run: " + "; ".join(e.plan.problems)
+            return self._done(ans, t0, budget)
         ans.status = "answered"
         ans.columns, ans.rows, ans.truncated = result.columns, result.rows, result.truncated
         tables = ", ".join(plan.tables)

@@ -1,0 +1,298 @@
+/* Design tokens. Every colour, size and duration in the console comes from here (theme.ts mirrors the motion and
+   the domain colours for SVG). The visual idea is a transit map: each domain is a line with its own colour, each
+   data product a station, lineage the track between them. Everything else stays quiet. */
+
+:root {
+  /* paper and ink: cool slate, not cream */
+  --paper: #f1f3f6;
+  --surface: #ffffff;
+  --surface-sunk: #e7eaef;
+  --ink: #131a24;
+  --ink-2: #47505e;
+  --ink-3: #6b7482;
+  --rule: #d5dae2;
+  --rule-strong: #b6bdc9;
+
+  /* domain lines */
+  --line-listings: #2457d6;
+  --line-dealers: #0d7488;
+  --line-leads: #b0175a;
+  --line-pricing: #6d3ad6;
+
+  /* meaning */
+  --ok: #1d7448;
+  --ok-wash: #e2f1e8;
+  --warn: #9a5b06;
+  --warn-wash: #f7ecd8;
+  --stop: #b32317;
+  --stop-wash: #f8e4e1;
+  --ask: #344aa8;
+  --ask-wash: #e6e9f7;
+  --focus: #344aa8;
+
+  /* type: one family in two widths, and a mono face only for SQL and logs */
+  --font-ui: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --width-narrow: 78;
+  --width-wide: 112;
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.125rem;
+  --step-2: 1.4375rem;
+  --step-3: 1.875rem;
+  --step-4: 2.75rem;
+  --leading: 1.5;
+  --leading-tight: 1.15;
+  --measure: 70ch;
+
+  /* space (4 px base) and shape */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --radius-s: 3px;
+  --radius-m: 6px;
+  --radius-pill: 999px;
+  --nav: 15rem;
+  --track: 4px;
+  --station: 9px;
+  --shadow: 0 1px 0 var(--rule), 0 10px 28px -20px rgba(19, 26, 36, 0.45);
+
+  /* motion */
+  --dur-fast: 120ms;
+  --dur: 240ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f141b;
+    --surface: #161d27;
+    --surface-sunk: #0b1016;
+    --ink: #e5e9ef;
+    --ink-2: #a9b2c0;
+    --ink-3: #8690a0;
+    --rule: #263040;
+    --rule-strong: #364257;
+    --line-listings: #7aa2ff;
+    --line-dealers: #4fc3d6;
+    --line-leads: #f06ba4;
+    --line-pricing: #b393ff;
+    --ok: #6fd19c;
+    --ok-wash: #142a1e;
+    --warn: #f0b45c;
+    --warn-wash: #33250e;
+    --stop: #ff8a7d;
+    --stop-wash: #3a1915;
+    --ask: #a9b7ff;
+    --ask-wash: #1d2547;
+    --focus: #a9b7ff;
+    --shadow: 0 1px 0 var(--rule), 0 10px 28px -20px rgba(0, 0, 0, 0.9);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0f141b;
+  --surface: #161d27;
+  --surface-sunk: #0b1016;
+  --ink: #e5e9ef;
+  --ink-2: #a9b2c0;
+  --ink-3: #8690a0;
+  --rule: #263040;
+  --rule-strong: #364257;
+  --line-listings: #7aa2ff;
+  --line-dealers: #4fc3d6;
+  --line-leads: #f06ba4;
+  --line-pricing: #b393ff;
+  --ok: #6fd19c;
+  --ok-wash: #142a1e;
+  --warn: #f0b45c;
+  --warn-wash: #33250e;
+  --stop: #ff8a7d;
+  --stop-wash: #3a1915;
+  --ask: #a9b7ff;
+  --ask-wash: #1d2547;
+  --focus: #a9b7ff;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: var(--leading);
+  font-variation-settings: "wdth" 100;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: var(--leading-tight);
+  font-weight: 650;
+}
+
+h1 {
+  font-size: var(--step-3);
+  font-variation-settings: "wdth" var(--width-wide);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--step-2);
+}
+
+h3 {
+  font-size: var(--step-1);
+}
+
+p {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+a {
+  color: var(--ask);
+}
+
+code,
+pre {
+  font-family: var(--font-code);
+  font-size: var(--step--1);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  padding: var(--s-2) var(--s-4);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.button:hover {
+  border-color: var(--ink-3);
+}
+
+.button.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.button[disabled] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  padding: var(--s-2) var(--s-3);
+}
+
+.narrow {
+  font-variation-settings: "wdth" var(--width-narrow);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--s-2);
+  font-size: var(--step--1);
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--surface-sunk);
+  color: var(--ink-2);
+}
+
+.chip.ok {
+  background: var(--ok-wash);
+  color: var(--ok);
+}
+
+.chip.warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.chip.stop {
+  background: var(--stop-wash);
+  color: var(--stop);
+}
+
+.chip.ask {
+  background: var(--ask-wash);
+  color: var(--ask);
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-variation-settings: "wdth" var(--width-narrow);
+}
+
+table.data th,
+table.data td {
+  text-align: left;
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+table.data th {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+table.data td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

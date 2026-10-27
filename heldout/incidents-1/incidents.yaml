@@ -1,0 +1,492 @@
+incidents:
+  # ---------------------------------------------------------------- late_drop
+  - id: i01
+    product: dealers.dealers
+    dt: "2026-09-08"
+    status: failed
+    step: ingest
+    error_type: NoSuchKey
+    error: "An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist. (key: dealer-crm/dt=2026-09-08/dealers_snapshot.csv.gz)"
+    log:
+      - "2026-09-09T02:00:01Z INFO  [dealers.dealers.ingest] reading s3://mkt-landing-prod/dealer-crm/dt=2026-09-08/dealers_snapshot.csv.gz"
+      - "2026-09-09T02:00:02Z WARN  [dealers.dealers.ingest] ListObjectsV2 on prefix dealer-crm/dt=2026-09-08/ returned 0 keys"
+      - "2026-09-09T02:00:02Z ERROR [dealers.dealers.ingest] botocore.errorfactory.NoSuchKey: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist."
+      - "2026-09-09T02:00:02Z INFO  [dealers.dealers.ingest] most recent object under dealer-crm/ is dt=2026-09-07/dealers_snapshot.csv.gz (LastModified 2026-09-08T00:41:17Z)"
+      - "2026-09-09T02:00:03Z ERROR [dealers.dealers.ingest] Task failed with exception; marking run as FAILED"
+    recent_changes: []
+    blocked_by: []
+    expected_category: late_drop
+    expected_team: team-dealers
+
+  - id: i02
+    product: leads.leads
+    dt: "2026-09-14"
+    status: failed
+    step: sensor
+    error_type: AirflowSensorTimeout
+    error: "Sensor has timed out; run duration of 7200.41 seconds exceeds the specified timeout of 7200.0."
+    log:
+      - "2026-09-15T00:30:00Z INFO  [leads.leads.sensor] Poking for key s3://mkt-landing-prod/lead-service/dt=2026-09-14/_SUCCESS"
+      - "2026-09-15T01:30:00Z INFO  [leads.leads.sensor] Poking for key s3://mkt-landing-prod/lead-service/dt=2026-09-14/_SUCCESS"
+      - "2026-09-15T02:15:00Z WARN  [leads.leads.sensor] still waiting; 0 objects under lead-service/dt=2026-09-14/ after 105 min"
+      - "2026-09-15T02:30:00Z ERROR [leads.leads.sensor] airflow.exceptions.AirflowSensorTimeout: Sensor has timed out; run duration of 7200.41 seconds exceeds the specified timeout of 7200.0."
+      - "2026-09-15T02:30:01Z ERROR [leads.leads.sensor] Marking task as FAILED. dag_id=leads__leads, task_id=wait_for_landing_file, execution_date=20260914T000000"
+    recent_changes:
+      - product: leads.leads
+        rename_columns: {buyer_phone: buyer_phone_e164}
+        days_before: 2
+        note: "rename buyer_phone to buyer_phone_e164 (coordinated with lead-service, already shipped)"
+    blocked_by: []
+    expected_category: late_drop
+    expected_team: team-leads
+
+  # ------------------------------------------------------------- schema_drift
+  - id: i03
+    product: listings.listing_events
+    dt: "2026-09-17"
+    status: failed
+    step: ingest
+    error_type: ContractViolation
+    error: "file does not match contract listings.listing_events v7: required field 'mileage_km' missing; unexpected field 'odometer_km'"
+    log:
+      - "2026-09-18T02:00:02Z INFO  [listings.listing_events.ingest] reading s3://mkt-landing-prod/listing-service/dt=2026-09-17/ (14 objects, 912.4 MiB)"
+      - "2026-09-18T02:00:09Z INFO  [listings.listing_events.ingest] inferred 13 fields from parquet footer"
+      - "2026-09-18T02:00:09Z WARN  [listings.listing_events.ingest] field 'odometer_km' (int32) not declared in contract"
+      - "2026-09-18T02:00:09Z ERROR [listings.listing_events.ingest] contract check failed: required field 'mileage_km' (int) is missing from source file"
+      - "2026-09-18T02:00:10Z ERROR [listings.listing_events.ingest] ContractViolation: file does not match contract listings.listing_events v7"
+    recent_changes: []
+    blocked_by: []
+    expected_category: schema_drift
+    expected_team: team-listings
+
+  - id: i04
+    product: dealers.dealers
+    dt: "2026-09-22"
+    status: failed
+    step: ingest
+    error_type: KeyError
+    error: "'vat_id'"
+    log:
+      - "2026-09-23T02:00:01Z INFO  [dealers.dealers.ingest] downloaded dealer-crm/dt=2026-09-22/dealers_snapshot.csv.gz (5,702 rows)"
+      - "2026-09-23T02:00:02Z WARN  [dealers.dealers.ingest] header has 9 columns: dealer_id,dealer_name,country,city,tier,contact_email,contact_phone,tax_number,onboarded_on"
+      - "2026-09-23T02:00:02Z ERROR [dealers.dealers.ingest] Traceback (most recent call last):"
+      - "2026-09-23T02:00:02Z ERROR [dealers.dealers.ingest]   File \"/opt/pipelines/ingest/cast.py\", line 58, in apply_contract"
+      - "2026-09-23T02:00:02Z ERROR [dealers.dealers.ingest]     out[name] = frame[name].astype(dtype)"
+      - "2026-09-23T02:00:02Z ERROR [dealers.dealers.ingest] KeyError: 'vat_id'"
+    recent_changes: []
+    blocked_by: []
+    expected_category: schema_drift
+    expected_team: team-dealers
+
+  # --------------------------------------------------------------- type_drift
+  - id: i05
+    product: listings.listing_events
+    dt: "2026-09-25"
+    status: failed
+    step: ingest
+    error_type: ConversionException
+    error: "Conversion Error: Could not convert string '12.490,00' to DOUBLE when casting column \"price_eur\""
+    log:
+      - "2026-09-26T02:00:02Z INFO  [listings.listing_events.ingest] loading listing-service/dt=2026-09-25/*.json.gz into staging with read_json_auto"
+      - "2026-09-26T02:00:11Z INFO  [listings.listing_events.ingest] casting to contract types"
+      - "2026-09-26T02:00:13Z ERROR [listings.listing_events.ingest] duckdb.duckdb.ConversionException: Conversion Error: Could not convert string '12.490,00' to DOUBLE"
+      - "2026-09-26T02:00:13Z ERROR [listings.listing_events.ingest] LINE 1: ...CAST(price_eur AS DOUBLE) AS price_eur, ..."
+      - "2026-09-26T02:00:13Z WARN  [listings.listing_events.ingest] sample of offending values: '12.490,00', '8.950,00', '21.300,50'"
+    recent_changes: []
+    blocked_by: []
+    expected_category: type_drift
+    expected_team: team-listings
+
+  - id: i06
+    product: leads.leads
+    dt: "2026-10-02"
+    status: failed
+    step: ingest
+    error_type: ArrowInvalid
+    error: "Failed to parse string: '1759363204117' as a scalar of type timestamp[us]"
+    log:
+      - "2026-10-03T02:00:01Z INFO  [leads.leads.ingest] reading lead-service/dt=2026-10-02/leads-000.parquet"
+      - "2026-10-03T02:00:03Z INFO  [leads.leads.ingest] applying schema from contract leads.leads"
+      - "2026-10-03T02:00:04Z ERROR [leads.leads.ingest] pyarrow.lib.ArrowInvalid: Failed to parse string: '1759363204117' as a scalar of type timestamp[us]"
+      - "2026-10-03T02:00:04Z ERROR [leads.leads.ingest] while converting column 'created_ts' (row group 0)"
+      - "2026-10-03T02:00:04Z ERROR [leads.leads.ingest] task ingest exited with status 1"
+    recent_changes: []
+    blocked_by: []
+    expected_category: type_drift
+    expected_team: team-leads
+
+  # --------------------------------------------------------------- null_spike
+  - id: i07
+    product: leads.leads
+    dt: "2026-09-19"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "check not_null(listing_id) failed: 17,904 of 46,211 rows are null (38.7%), allowed 0"
+    log:
+      - "2026-09-20T02:01:40Z INFO  [leads.leads.quality] running 6 checks on staging partition dt=2026-09-19"
+      - "2026-09-20T02:01:44Z INFO  [leads.leads.quality] unique(lead_id): passed"
+      - "2026-09-20T02:01:45Z ERROR [leads.leads.quality] not_null(listing_id): FAILED, 17904 null rows (38.7%)"
+      - "2026-09-20T02:01:45Z WARN  [leads.leads.quality] null listing_id rows all have channel = 'chat'"
+      - "2026-09-20T02:01:46Z ERROR [leads.leads.quality] 1 of 6 checks failed; partition dt=2026-09-19 moved to quarantine"
+    recent_changes: []
+    blocked_by: []
+    expected_category: null_spike
+    expected_team: team-leads
+
+  - id: i08
+    product: dealers.dealers
+    dt: "2026-10-06"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "check accepted_values(country) failed: 3,412 of 5,688 rows outside the allowed set"
+    log:
+      - "2026-10-07T02:01:10Z INFO  [dealers.dealers.quality] running 5 checks on staging partition dt=2026-10-06"
+      - "2026-10-07T02:01:12Z ERROR [dealers.dealers.quality] accepted_values(country): FAILED, 3412 rows not in [AT, BE, DE, ES, FR, IT, NL]"
+      - "2026-10-07T02:01:12Z WARN  [dealers.dealers.quality] top offending values: '' (3412)"
+      - "2026-10-07T02:01:12Z INFO  [dealers.dealers.quality] unique(dealer_id): passed; row_count: 5688 (7-day median 5671)"
+      - "2026-10-07T02:01:13Z ERROR [dealers.dealers.quality] partition quarantined: s3://mkt-lake-prod/quarantine/dealers/dealers/dt=2026-10-06/"
+    recent_changes:
+      - product: pricing.price_ratings
+        sql_replace: {"WHEN c.price_eur <= 0.97 * r.reference_price_eur THEN 'good'": "WHEN c.price_eur <= 0.96 * r.reference_price_eur THEN 'good'"}
+        days_before: 1
+        note: "tighten the good band to 96% of reference price"
+    blocked_by: []
+    expected_category: null_spike
+    expected_team: team-dealers
+
+  # --------------------------------------------------------------- duplicates
+  - id: i09
+    product: listings.listing_events
+    dt: "2026-09-29"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "check unique(event_id) failed: 18,204 duplicate keys"
+    log:
+      - "2026-09-30T02:03:02Z INFO  [listings.listing_events.quality] running 8 checks on staging partition dt=2026-09-29"
+      - "2026-09-30T02:03:19Z ERROR [listings.listing_events.quality] unique(event_id): FAILED, 18204 event_id values appear more than once (max 3 copies)"
+      - "2026-09-30T02:03:19Z WARN  [listings.listing_events.quality] example duplicated key: ev_7f3a91c2e0 (3 rows, identical payload)"
+      - "2026-09-30T02:03:20Z INFO  [listings.listing_events.quality] not_null(listing_id): passed"
+      - "2026-09-30T02:03:21Z ERROR [listings.listing_events.quality] quality gate failed (1/8); not publishing, partition quarantined"
+    recent_changes: []
+    blocked_by: []
+    expected_category: duplicates
+    expected_team: team-listings
+
+  - id: i10
+    product: dealers.dealers
+    dt: "2026-10-11"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "row_count 11,376 is above the upper bound 6,900; unique(dealer_id) failed"
+    log:
+      - "2026-10-12T02:00:01Z INFO  [dealers.dealers.ingest] found 2 objects under dealer-crm/dt=2026-10-11/: dealers_snapshot.csv.gz, dealers_snapshot (1).csv.gz"
+      - "2026-10-12T02:01:05Z INFO  [dealers.dealers.quality] running 5 checks on staging partition dt=2026-10-11"
+      - "2026-10-12T02:01:06Z WARN  [dealers.dealers.quality] row_count: 11376 above upper bound 6900"
+      - "2026-10-12T02:01:07Z ERROR [dealers.dealers.quality] unique(dealer_id): FAILED, 5688 keys occur twice"
+      - "2026-10-12T02:01:07Z ERROR [dealers.dealers.quality] partition dt=2026-10-11 quarantined"
+    recent_changes: []
+    blocked_by: []
+    expected_category: duplicates
+    expected_team: team-dealers
+
+  # -------------------------------------------------------------- volume_drop
+  - id: i11
+    product: listings.listing_events
+    dt: "2026-10-04"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "check row_count failed: 4,120 rows, expected at least 55,000"
+    log:
+      - "2026-10-05T02:00:03Z INFO  [listings.listing_events.ingest] read 3 objects (41.2 MiB) from listing-service/dt=2026-10-04/"
+      - "2026-10-05T02:01:12Z ERROR [listings.listing_events.quality] row_count: FAILED, 4120 rows (min 55000, 28-day median 68,930)"
+      - "2026-10-05T02:01:12Z WARN  [listings.listing_events.quality] events only between 00:00Z and 01:27Z; no rows after 01:27Z"
+      - "2026-10-05T02:01:13Z INFO  [listings.listing_events.quality] unique(event_id): passed; not_null(listing_id): passed"
+      - "2026-10-05T02:01:13Z ERROR [listings.listing_events.quality] partition quarantined; downstream products will be blocked"
+    recent_changes: []
+    blocked_by: []
+    expected_category: volume_drop
+    expected_team: team-listings
+
+  - id: i12
+    product: leads.leads
+    dt: "2026-10-09"
+    status: quality_failed
+    step: quality
+    error_type: QualityCheckFailed
+    error: "anomaly check volume_vs_trailing_7d failed (z=-6.3)"
+    log:
+      - "2026-10-10T02:01:30Z INFO  [leads.leads.quality] running 6 checks on staging partition dt=2026-10-09"
+      - "2026-10-10T02:01:33Z ERROR [leads.leads.quality] volume_vs_trailing_7d: FAILED, observed 9,840 rows, trailing mean 44,120, z=-6.3"
+      - "2026-10-10T02:01:33Z WARN  [leads.leads.quality] channel breakdown: email 9,840, call 0, chat 0"
+      - "2026-10-10T02:01:34Z INFO  [leads.leads.quality] unique(lead_id): passed; not_null(listing_id): passed"
+      - "2026-10-10T02:01:34Z ERROR [leads.leads.quality] 1 check failed; partition quarantined"
+    recent_changes:
+      - product: leads.dealer_lead_performance
+        sql_replace: {"ELSE CAST(coalesce(l.leads, 0) AS DOUBLE) / o.listings_online": "ELSE round(CAST(coalesce(l.leads, 0) AS DOUBLE) / o.listings_online, 4)"}
+        days_before: 1
+        note: "round leads_per_listing to 4 decimals"
+    blocked_by: []
+    expected_category: volume_drop
+    expected_team: team-leads
+
+  # ------------------------------------------------- upstream_contract_change
+  - id: i13
+    product: pricing.price_ratings
+    dt: "2026-09-21"
+    status: failed
+    step: transform
+    error_type: COLUMN_NOT_FOUND
+    error: "COLUMN_NOT_FOUND: line 4:51: Column 'first_registration_year' cannot be resolved or requester is not authorized to access requested resources"
+    log:
+      - "2026-09-22T02:20:01Z INFO  [pricing.price_ratings.transform] rendering price_ratings.sql for dt=2026-09-21"
+      - "2026-09-22T02:20:02Z INFO  [pricing.price_ratings.transform] StartQueryExecution QueryExecutionId=6b1e0c4a-93f2-4d1e-8a77-0c2f5e9b1d38"
+      - "2026-09-22T02:20:05Z ERROR [pricing.price_ratings.transform] query 6b1e0c4a-93f2-4d1e-8a77-0c2f5e9b1d38 FAILED: COLUMN_NOT_FOUND: line 4:51: Column 'first_registration_year' cannot be resolved or requester is not authorized to access requested resources"
+      - "2026-09-22T02:20:05Z ERROR [pricing.price_ratings.transform] AthenaQueryError raised; task failed after 1 attempt (not retryable)"
+    recent_changes:
+      - product: listings.listing_events
+        rename_columns: {first_registration_year: registration_year}
+        days_before: 1
+        note: "align naming with listing-service API v3"
+    blocked_by: []
+    expected_category: upstream_contract_change
+    expected_team: team-listings
+
+  - id: i14
+    product: leads.dealer_lead_performance
+    dt: "2026-10-13"
+    status: failed
+    step: transform
+    error_type: COLUMN_NOT_FOUND
+    error: "COLUMN_NOT_FOUND: line 22:31: Column 'tier' cannot be resolved or requester is not authorized to access requested resources"
+    log:
+      - "2026-10-14T02:30:00Z INFO  [leads.dealer_lead_performance.transform] inputs published for dt=2026-10-13: leads.leads, dealers.dealers, listings.listing_events"
+      - "2026-10-14T02:30:01Z INFO  [leads.dealer_lead_performance.transform] submitting dealer_lead_performance.sql to workgroup pipelines-prod"
+      - "2026-10-14T02:30:04Z ERROR [leads.dealer_lead_performance.transform] Athena query failed: COLUMN_NOT_FOUND: line 22:31: Column 'tier' cannot be resolved or requester is not authorized to access requested resources"
+      - "2026-10-14T02:30:04Z WARN  [leads.dealer_lead_performance.transform] error class is USER_ERROR; skipping retries"
+      - "2026-10-14T02:30:05Z ERROR [leads.dealer_lead_performance.transform] task transform failed"
+    recent_changes:
+      - product: dealers.dealers
+        rename_columns: {tier: subscription_tier}
+        days_before: 1
+        note: "rename tier to subscription_tier to match the CRM field"
+    blocked_by: []
+    expected_category: upstream_contract_change
+    expected_team: team-dealers
+
+  # -------------------------------------------------------------- code_change
+  - id: i15
+    product: listings.active_listings_daily
+    dt: "2026-09-30"
+    status: failed
+    step: transform
+    error_type: FUNCTION_NOT_FOUND
+    error: "FUNCTION_NOT_FOUND: line 13:3: Unexpected parameters (double) for function approx_percentile. Expected: approx_percentile(double, double), approx_percentile(double, bigint, double), approx_percentile(bigint, double), ..."
+    log:
+      - "2026-10-01T02:25:00Z INFO  [listings.active_listings_daily.transform] running active_listings_daily.sql (dt=2026-09-30)"
+      - "2026-10-01T02:25:02Z ERROR [listings.active_listings_daily.transform] FUNCTION_NOT_FOUND: line 13:3: Unexpected parameters (double) for function approx_percentile."
+      - "2026-10-01T02:25:02Z ERROR [listings.active_listings_daily.transform] QueryExecutionId=d02f7a11-5c3e-4b8e-9f10-2a6e4cc31b07 state=FAILED"
+      - "2026-10-01T02:25:03Z ERROR [listings.active_listings_daily.transform] task failed; no partition written"
+    recent_changes:
+      - product: listings.active_listings_daily
+        sql_replace: {"approx_percentile(price_eur, 0.5) AS median_price_eur": "approx_percentile(price_eur) AS median_price_eur"}
+        days_before: 0
+        note: "simplify median expression"
+    blocked_by: []
+    expected_category: code_change
+    expected_team: team-listings
+
+  - id: i16
+    product: pricing.price_ratings
+    dt: "2026-10-15"
+    status: failed
+    step: transform
+    error_type: TYPE_MISMATCH
+    error: "TYPE_MISMATCH: line 30:9: Cannot apply operator: date = varchar(10)"
+    log:
+      - "2026-10-16T02:20:01Z INFO  [pricing.price_ratings.transform] rendering price_ratings.sql for dt=2026-10-15"
+      - "2026-10-16T02:20:03Z ERROR [pricing.price_ratings.transform] Query 4c9d2e70-1a5b-4f3c-b2d8-77e0a9c41f65 failed: TYPE_MISMATCH: line 30:9: Cannot apply operator: date = varchar(10)"
+      - "2026-10-16T02:20:03Z WARN  [pricing.price_ratings.transform] input listings.listing_events contract changed 2 days ago (v8)"
+      - "2026-10-16T02:20:03Z ERROR [pricing.price_ratings.transform] task transform FAILED"
+    recent_changes:
+      - product: listings.listing_events
+        rename_columns: {fuel: fuel_type}
+        days_before: 2
+        note: "rename fuel to fuel_type"
+      - product: pricing.price_ratings
+        sql_replace: {"WHERE c.dt = DATE '{{ dt }}'": "WHERE c.dt = '{{ dt }}'"}
+        days_before: 1
+        note: "template cleanup"
+    blocked_by: []
+    expected_category: code_change
+    expected_team: team-pricing
+
+  # ------------------------------------------------------------ access_denied
+  - id: i17
+    product: leads.leads
+    dt: "2026-09-26"
+    status: failed
+    step: ingest
+    error_type: ClientError
+    error: "An error occurred (AccessDenied) when calling the GetObject operation: User: arn:aws:sts::412907358812:assumed-role/mkt-pipeline-runner/airflow is not authorized to perform: s3:GetObject on resource: arn:aws:s3:::mkt-landing-prod/lead-service/dt=2026-09-26/leads-000.parquet because no identity-based policy allows the s3:GetObject action"
+    log:
+      - "2026-09-27T02:00:01Z INFO  [leads.leads.ingest] 1 object found under lead-service/dt=2026-09-26/ (38.1 MiB)"
+      - "2026-09-27T02:00:01Z ERROR [leads.leads.ingest] botocore.exceptions.ClientError: An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
+      - "2026-09-27T02:00:01Z ERROR [leads.leads.ingest] principal arn:aws:sts::412907358812:assumed-role/mkt-pipeline-runner/airflow; no identity-based policy allows s3:GetObject"
+      - "2026-09-27T02:00:02Z ERROR [leads.leads.ingest] ingest failed, not retrying (AccessDenied is not retryable)"
+    recent_changes: []
+    blocked_by: []
+    expected_category: access_denied
+    expected_team: team-platform
+
+  - id: i18
+    product: leads.dealer_lead_performance
+    dt: "2026-10-18"
+    status: failed
+    step: transform
+    error_type: TABLE_NOT_FOUND
+    error: "TABLE_NOT_FOUND: line 30:8: Table 'awsdatacatalog.dealers.dealers' does not exist"
+    log:
+      - "2026-10-19T02:30:00Z INFO  [leads.dealer_lead_performance.transform] inputs published for dt=2026-10-18: leads.leads, dealers.dealers, listings.listing_events"
+      - "2026-10-19T02:30:02Z WARN  [leads.dealer_lead_performance.transform] glue:GetTable dealers.dealers -> AccessDeniedException: Insufficient Lake Formation permission(s) on dealers"
+      - "2026-10-19T02:30:03Z ERROR [leads.dealer_lead_performance.transform] Athena query failed: TABLE_NOT_FOUND: line 30:8: Table 'awsdatacatalog.dealers.dealers' does not exist"
+      - "2026-10-19T02:30:03Z ERROR [leads.dealer_lead_performance.transform] task transform failed"
+    recent_changes: []
+    blocked_by: []
+    expected_category: access_denied
+    expected_team: team-platform
+
+  # ------------------------------------------------------- resource_exhausted
+  - id: i19
+    product: listings.active_listings_daily
+    dt: "2026-10-08"
+    status: failed
+    step: transform
+    error_type: EXCEEDED_MEMORY_LIMIT
+    error: "Query exhausted resources at this scale factor. This query ran against the \"listings\" database, unless qualified by the query."
+    log:
+      - "2026-10-09T02:25:00Z INFO  [listings.active_listings_daily.transform] running active_listings_daily.sql (dt=2026-10-08)"
+      - "2026-10-09T02:31:47Z ERROR [listings.active_listings_daily.transform] Query 9a4f3b2e-0d61-4c8e-8f75-31be6c0d92aa FAILED after 407.2 s, 96.3 GB scanned"
+      - "2026-10-09T02:31:47Z ERROR [listings.active_listings_daily.transform] EXCEEDED_MEMORY_LIMIT: Query exhausted resources at this scale factor"
+      - "2026-10-09T02:31:47Z WARN  [listings.active_listings_daily.transform] stage 2 (window row_number over listing_id) used 31.8 GB peak per node"
+      - "2026-10-09T02:31:48Z ERROR [listings.active_listings_daily.transform] task failed"
+    recent_changes: []
+    blocked_by: []
+    expected_category: resource_exhausted
+    expected_team: team-platform
+
+  - id: i20
+    product: listings.listing_events
+    dt: "2026-10-12"
+    status: failed
+    step: ingest
+    error_type: AirflowException
+    error: "Task exited with return code Negsignal.SIGKILL"
+    log:
+      - "2026-10-13T02:00:02Z INFO  [listings.listing_events.ingest] reading listing-service/dt=2026-10-12/ (15 objects, 1.21 GiB)"
+      - "2026-10-13T02:00:02Z WARN  [listings.listing_events.ingest] input is 1.4x the 28-day median size"
+      - "2026-10-13T02:03:51Z WARN  [listings.listing_events.ingest] worker memory at 7.6 GiB of 8.0 GiB"
+      - "2026-10-13T02:04:06Z ERROR [listings.listing_events.ingest] Task exited with return code Negsignal.SIGKILL"
+      - "2026-10-13T02:04:06Z ERROR [listings.listing_events.ingest] container mwaa-worker-3 OOMKilled (exit code 137)"
+      - "2026-10-13T02:04:07Z ERROR [listings.listing_events.ingest] Marking task as FAILED after 2 attempts"
+    recent_changes: []
+    blocked_by: []
+    expected_category: resource_exhausted
+    expected_team: team-platform
+
+  # ---------------------------------------------------------- transient_infra
+  - id: i21
+    product: dealers.dealers
+    dt: "2026-09-15"
+    status: failed
+    step: ingest
+    error_type: ClientError
+    error: "An error occurred (SlowDown) when calling the PutObject operation (reached max retries: 4): Please reduce your request rate."
+    log:
+      - "2026-09-16T02:00:01Z INFO  [dealers.dealers.ingest] read dealer-crm/dt=2026-09-15/dealers_snapshot.csv.gz (5,661 rows); contract check passed"
+      - "2026-09-16T02:00:02Z INFO  [dealers.dealers.ingest] writing staging parquet to s3://mkt-lake-prod/staging/dealers/dealers/dt=2026-09-15/"
+      - "2026-09-16T02:00:04Z WARN  [dealers.dealers.ingest] PutObject returned 503 SlowDown, retry 1/4 in 1.6s"
+      - "2026-09-16T02:00:19Z WARN  [dealers.dealers.ingest] PutObject returned 503 SlowDown, retry 4/4 in 12.8s"
+      - "2026-09-16T02:00:32Z ERROR [dealers.dealers.ingest] botocore.exceptions.ClientError: An error occurred (SlowDown) when calling the PutObject operation (reached max retries: 4): Please reduce your request rate."
+    recent_changes: []
+    blocked_by: []
+    expected_category: transient_infra
+    expected_team: team-platform
+
+  - id: i22
+    product: pricing.price_ratings
+    dt: "2026-10-20"
+    status: failed
+    step: transform
+    error_type: HIVE_CANNOT_OPEN_SPLIT
+    error: "HIVE_CANNOT_OPEN_SPLIT: Error opening Hive split s3://mkt-lake-prod/published/listings/listing_events/dt=2026-08-03/part-00007.snappy.parquet (offset=0, length=67108864): Read timed out"
+    log:
+      - "2026-10-21T02:20:01Z INFO  [pricing.price_ratings.transform] rendering price_ratings.sql for dt=2026-10-20"
+      - "2026-10-21T02:22:40Z WARN  [pricing.price_ratings.transform] attempt 1 failed: HIVE_CANNOT_OPEN_SPLIT ... dt=2026-08-03/part-00007.snappy.parquet: Read timed out; retrying"
+      - "2026-10-21T02:25:12Z WARN  [pricing.price_ratings.transform] attempt 2 failed: HIVE_CANNOT_OPEN_SPLIT ... dt=2026-07-29/part-00002.snappy.parquet: Unable to execute HTTP request: Read timed out"
+      - "2026-10-21T02:27:55Z ERROR [pricing.price_ratings.transform] attempt 3 failed: HIVE_CANNOT_OPEN_SPLIT: Error opening Hive split s3://mkt-lake-prod/published/listings/listing_events/dt=2026-08-03/part-00007.snappy.parquet (offset=0, length=67108864): Read timed out"
+      - "2026-10-21T02:27:55Z ERROR [pricing.price_ratings.transform] giving up after 3 attempts"
+    recent_changes: []
+    blocked_by: []
+    expected_category: transient_infra
+    expected_team: team-platform
+
+  # ------------------------------------------------- blocked (upstream_failed)
+  - id: i23
+    product: leads.dealer_lead_performance
+    dt: "2026-10-16"
+    status: upstream_failed
+    step: sensor
+    error_type: UpstreamNotPublished
+    error: "input dealers.dealers has no published partition for dt=2026-10-16"
+    log:
+      - "2026-10-17T02:30:00Z INFO  [leads.dealer_lead_performance.sensor] checking inputs for dt=2026-10-16"
+      - "2026-10-17T02:30:00Z INFO  [leads.dealer_lead_performance.sensor] leads.leads: published; listings.listing_events: published"
+      - "2026-10-17T02:30:01Z WARN  [leads.dealer_lead_performance.sensor] dealers.dealers: no published partition dt=2026-10-16 (last run state=failed)"
+      - "2026-10-17T02:30:01Z ERROR [leads.dealer_lead_performance.sensor] upstream not ready; setting state upstream_failed"
+    recent_changes: []
+    blocked_by: [dealers.dealers]
+    upstream:
+      - product: dealers.dealers
+        status: failed
+        step: ingest
+        error_type: FileNotFoundError
+        error: "No files matched pattern s3://mkt-landing-prod/dealer-crm/dt=2026-10-16/*.csv.gz"
+        log:
+          - "2026-10-17T02:00:01Z INFO  [dealers.dealers.ingest] globbing s3://mkt-landing-prod/dealer-crm/dt=2026-10-16/*.csv.gz"
+          - "2026-10-17T02:00:02Z ERROR [dealers.dealers.ingest] FileNotFoundError: No files matched pattern s3://mkt-landing-prod/dealer-crm/dt=2026-10-16/*.csv.gz"
+          - "2026-10-17T02:00:02Z INFO  [dealers.dealers.ingest] latest delivered partition: dt=2026-10-15"
+          - "2026-10-17T02:00:02Z ERROR [dealers.dealers.ingest] ingest failed"
+    expected_category: late_drop
+    expected_team: team-dealers
+
+  - id: i24
+    product: pricing.price_ratings
+    dt: "2026-10-22"
+    status: upstream_failed
+    step: sensor
+    error_type: UpstreamNotPublished
+    error: "blocked: listings.listing_events dt=2026-10-22 not published"
+    log:
+      - "2026-10-23T02:20:00Z INFO  [pricing.price_ratings.sensor] waiting on listings.listing_events dt=2026-10-22"
+      - "2026-10-23T02:20:00Z WARN  [pricing.price_ratings.sensor] listings.listing_events run for dt=2026-10-22 ended in state failed"
+      - "2026-10-23T02:20:01Z ERROR [pricing.price_ratings.sensor] upstream_failed: listings.listing_events dt=2026-10-22 not published"
+    recent_changes: []
+    blocked_by: [listings.listing_events]
+    upstream:
+      - product: listings.listing_events
+        status: failed
+        step: ingest
+        error_type: InvalidInputException
+        error: "Invalid Input Error: Could not convert string 'k.A.' to INT32 in column \"first_registration_year\", at line 48213"
+        log:
+          - "2026-10-23T02:00:02Z INFO  [listings.listing_events.ingest] loading listing-service/dt=2026-10-22/*.csv.gz into staging"
+          - "2026-10-23T02:00:14Z ERROR [listings.listing_events.ingest] duckdb.InvalidInputException: Invalid Input Error: Could not convert string 'k.A.' to INT32 in column \"first_registration_year\", at line 48213"
+          - "2026-10-23T02:00:14Z WARN  [listings.listing_events.ingest] 2,904 rows in sample have non-numeric first_registration_year ('k.A.', 'unbekannt')"
+          - "2026-10-23T02:00:15Z ERROR [listings.listing_events.ingest] ingest failed"
+    expected_category: type_drift
+    expected_team: team-listings

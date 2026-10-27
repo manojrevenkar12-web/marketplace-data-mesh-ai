@@ -23,10 +23,11 @@ dependencies = [
   "psycopg[binary]>=3.2",
   "psycopg_pool>=3.2",
   "mcp>=2.0",
+  "opentelemetry-sdk>=1.27",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.7", "mypy>=1.13", "moto>=5", "types-PyYAML"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.7", "mypy>=1.13", "types-PyYAML", "python-hcl2>=5"]
 
 [project.scripts]
 mesh = "mesh.cli:main"

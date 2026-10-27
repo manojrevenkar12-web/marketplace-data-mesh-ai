@@ -1,0 +1,61 @@
+.ask-form {
+  display: grid;
+  gap: var(--s-2);
+  max-width: var(--measure);
+}
+
+.ask-form label {
+  font-weight: 600;
+}
+
+.ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  align-items: start;
+}
+
+.ask-examples {
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--step--1);
+}
+
+.ask-result {
+  display: grid;
+  gap: var(--s-3);
+  border-left-width: var(--track);
+}
+
+.ask-result.tone-ok {
+  border-left-color: var(--ok);
+}
+
+.ask-result.tone-warn {
+  border-left-color: var(--warn);
+}
+
+.ask-result.tone-stop {
+  border-left-color: var(--stop);
+}
+
+.ask-sql summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ask-sql > * + * {
+  margin-top: var(--s-2);
+}
+
+.ask-problems {
+  margin: 0;
+  padding-left: var(--s-5);
+  color: var(--stop);
+}
+
+.ask-feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}

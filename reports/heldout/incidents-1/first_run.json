@@ -1,0 +1,207 @@
+{
+  "set": "incidents-1",
+  "status": "blind",
+  "sha256": "2202d3f566b29b3ee6a753e788c30697ca2913c1c8c75fe495c96909398bd81d",
+  "ran_at": "2026-10-27T21:08:08+00:00",
+  "model_mode": "simulated",
+  "kind": "incidents",
+  "incidents": 24,
+  "right_cause": 0.5833,
+  "right_team": 0.7917,
+  "naive_alert_right_team": 0.5833,
+  "rows": [
+    {
+      "id": "i01",
+      "expected": "late_drop",
+      "got": "access_denied",
+      "team": "team-dealers",
+      "routed": "team-platform",
+      "by": "model"
+    },
+    {
+      "id": "i02",
+      "expected": "late_drop",
+      "got": "null_spike",
+      "team": "team-leads",
+      "routed": "team-leads",
+      "by": "model"
+    },
+    {
+      "id": "i03",
+      "expected": "schema_drift",
+      "got": "schema_drift",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "rule"
+    },
+    {
+      "id": "i04",
+      "expected": "schema_drift",
+      "got": "null_spike",
+      "team": "team-dealers",
+      "routed": "team-dealers",
+      "by": "model"
+    },
+    {
+      "id": "i05",
+      "expected": "type_drift",
+      "got": "null_spike",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "model"
+    },
+    {
+      "id": "i06",
+      "expected": "type_drift",
+      "got": "type_drift",
+      "team": "team-leads",
+      "routed": "team-leads",
+      "by": "model"
+    },
+    {
+      "id": "i07",
+      "expected": "null_spike",
+      "got": "null_spike",
+      "team": "team-leads",
+      "routed": "team-leads",
+      "by": "rule"
+    },
+    {
+      "id": "i08",
+      "expected": "null_spike",
+      "got": "null_spike",
+      "team": "team-dealers",
+      "routed": "team-dealers",
+      "by": "model"
+    },
+    {
+      "id": "i09",
+      "expected": "duplicates",
+      "got": "duplicates",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "rule"
+    },
+    {
+      "id": "i10",
+      "expected": "duplicates",
+      "got": "duplicates",
+      "team": "team-dealers",
+      "routed": "team-dealers",
+      "by": "rule"
+    },
+    {
+      "id": "i11",
+      "expected": "volume_drop",
+      "got": "null_spike",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "model"
+    },
+    {
+      "id": "i12",
+      "expected": "volume_drop",
+      "got": "volume_drop",
+      "team": "team-leads",
+      "routed": "team-leads",
+      "by": "rule"
+    },
+    {
+      "id": "i13",
+      "expected": "upstream_contract_change",
+      "got": "access_denied",
+      "team": "team-listings",
+      "routed": "team-platform",
+      "by": "rule"
+    },
+    {
+      "id": "i14",
+      "expected": "upstream_contract_change",
+      "got": "access_denied",
+      "team": "team-dealers",
+      "routed": "team-platform",
+      "by": "rule"
+    },
+    {
+      "id": "i15",
+      "expected": "code_change",
+      "got": "code_change",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "rule"
+    },
+    {
+      "id": "i16",
+      "expected": "code_change",
+      "got": "code_change",
+      "team": "team-pricing",
+      "routed": "team-pricing",
+      "by": "rule"
+    },
+    {
+      "id": "i17",
+      "expected": "access_denied",
+      "got": "access_denied",
+      "team": "team-platform",
+      "routed": "team-platform",
+      "by": "rule"
+    },
+    {
+      "id": "i18",
+      "expected": "access_denied",
+      "got": "access_denied",
+      "team": "team-platform",
+      "routed": "team-platform",
+      "by": "model"
+    },
+    {
+      "id": "i19",
+      "expected": "resource_exhausted",
+      "got": "resource_exhausted",
+      "team": "team-platform",
+      "routed": "team-platform",
+      "by": "rule"
+    },
+    {
+      "id": "i20",
+      "expected": "resource_exhausted",
+      "got": "unknown",
+      "team": "team-platform",
+      "routed": "",
+      "by": "uncertain"
+    },
+    {
+      "id": "i21",
+      "expected": "transient_infra",
+      "got": "transient_infra",
+      "team": "team-platform",
+      "routed": "team-platform",
+      "by": "rule"
+    },
+    {
+      "id": "i22",
+      "expected": "transient_infra",
+      "got": "null_spike",
+      "team": "team-platform",
+      "routed": "team-pricing",
+      "by": "model"
+    },
+    {
+      "id": "i23",
+      "expected": "late_drop",
+      "got": "late_drop",
+      "team": "team-dealers",
+      "routed": "team-dealers",
+      "by": "model"
+    },
+    {
+      "id": "i24",
+      "expected": "type_drift",
+      "got": "upstream_contract_change",
+      "team": "team-listings",
+      "routed": "team-listings",
+      "by": "model"
+    }
+  ],
+  "headline": "24 incidents; right cause 58.3%, right team 79.2% (a plain alert to the failed job's owner: 58.3%)."
+}

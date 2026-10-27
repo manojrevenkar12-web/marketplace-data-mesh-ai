@@ -13,7 +13,10 @@ INJECTION = re.compile(
     r"|you\s+are\s+now\b|new\s+instructions?\s*:|system\s+prompt|act\s+as\s+(an?\s+)?(admin|administrator|root)"
     r"|(always|must)\s+(include|select|return|query)\s+\w+\s+(columns?|from)"
     r"|(reveal|print|output|expose)\s+(the\s+)?(hidden|restricted|secret|pii|personal)"
-    r"|(grant|give)\s+(me|the\s+user|everyone)\s+access|bypass\s+(the\s+)?(permissions|access|lake\s*formation)",
+    r"|(grant|give)\s+(me|the\s+user|everyone)\s+access|bypass\s+(the\s+)?(permissions|access|lake\s*formation)"
+    r"|\b(notes?|instructions?|message)\s+(for|to)\s+(the\s+)?(assistants?|ai|models?|llms?|copilots?|agents?)\b"
+    r"|\b(assistants?|ai|llms?|copilots?|agents?)\s*:\s"
+    r"|\b(also|always)\s+(return|include|select|add|show)\s+(the\s+)?[a-z_]+(\s+(column|field)s?)?\s+(so|when|for|in)\b",
     re.IGNORECASE,
 )
 

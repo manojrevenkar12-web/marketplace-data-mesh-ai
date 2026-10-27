@@ -1,0 +1,10 @@
+.venv
+.git
+data
+web
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+infra/terraform/.terraform
+heldout/.scratch

@@ -217,7 +217,11 @@ class QueryEngine:
             if ta.visible:
                 register_view(con, self.lake, self.registry[product], list(ta.columns), ta.row_filter)
         t0 = time.perf_counter()
-        table = query_arrow(con, f"SELECT * FROM ({plan.duckdb_sql}) AS q LIMIT {max_rows + 1}")
+        try:
+            table = query_arrow(con, f"SELECT * FROM ({plan.duckdb_sql}) AS q LIMIT {max_rows + 1}")
+        except Exception as e:  # the engine's own errors (binder, conversion) become a reason, not a crash
+            plan.problems.append(f"the query failed: {str(e).splitlines()[0][:300]}")
+            raise QueryRejected(plan) from e
         rows = [list(r.values()) for r in table.to_pylist()]
         return Result(plan, table.column_names, rows[:max_rows], len(rows) > max_rows, int((time.perf_counter() - t0) * 1000))
 

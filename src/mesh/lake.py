@@ -109,7 +109,7 @@ def arrow_schema(c: Contract) -> pa.Schema:
 
 def connect() -> duckdb.DuckDBPyConnection:
     con = duckdb.connect(database=":memory:")
-    con.execute("SET threads TO 2")
+    con.execute("SET threads TO 1")  # deterministic approximate aggregates (approx_quantile)
     con.execute("SET TimeZone = 'UTC'")
     return con
 

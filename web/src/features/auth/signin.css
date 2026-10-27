@@ -1,0 +1,56 @@
+.signin {
+  display: grid;
+  gap: var(--s-6);
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--s-7) var(--s-4);
+}
+
+.signin-head {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.signin-head h1 {
+  font-size: var(--step-4);
+}
+
+.signin-head p {
+  color: var(--ink-2);
+}
+
+.signin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.signin-user {
+  width: 100%;
+  display: grid;
+  gap: var(--s-1);
+  text-align: left;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.signin-user:hover {
+  border-color: var(--ink-3);
+}
+
+.signin-name {
+  font-weight: 650;
+}
+
+.signin-role {
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}

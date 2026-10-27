@@ -1,0 +1,41 @@
+name: data contract review
+
+on:
+  pull_request:
+    paths: ["products/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e .
+      - name: Recent partitions for the dry run
+        run: mesh sim --small > /dev/null
+      - name: Review the change
+        id: review
+        run: |
+          set +e
+          mesh review --base "origin/${{ github.base_ref }}" > review.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat review.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Post the review on the pull request
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file review.md --edit-last || gh pr comment "${{ github.event.pull_request.number }}" --body-file review.md
+      - name: A blocked change fails the check
+        if: steps.review.outputs.exit != '0'
+        run: |
+          echo "::error title=data contract review::the review blocked this change; see the comment"
+          exit 1

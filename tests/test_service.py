@@ -148,3 +148,20 @@ async def test_failed_runs_their_diagnosis_and_reviews(app, platform):
         ).status_code == 201
         usage = (await c.get("/v1/usage")).json()
         assert usage["feedback"]["triage"]["n"] == 1
+
+
+async def test_contract_files_and_the_evaluation_with_its_blind_first_runs(app):
+    async with client(app, "dana.dealers") as c:
+        files = (await c.get("/v1/contracts/leads.dealer_lead_performance")).json()["files"]
+        assert [f["path"] for f in files] == [
+            "products/leads/dealer_lead_performance.yaml",
+            "products/leads/dealer_lead_performance.sql",
+        ]
+        assert "dealer_id" in files[0]["text"]
+        assert (await c.get("/v1/contracts/nope.nope")).status_code == 404
+        ev = await c.get("/v1/evaluation")
+        if ev.status_code == 404:
+            pytest.skip("no evaluation report in this checkout")
+        sets = {h["set"]: h for h in ev.json()["heldout"]}
+        assert {"questions-1", "changes-1", "incidents-1"} <= set(sets)
+        assert all(h["headline"] and h["status"] for h in sets.values())

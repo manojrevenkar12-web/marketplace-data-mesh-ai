@@ -1,0 +1,203 @@
+{
+  "set": "changes-1",
+  "status": "blind",
+  "sha256": "86d10782255c05bdede2c9ff5ab90f8c1c7ac62aa09d60e64f1725228cc96c9e",
+  "ran_at": "2026-10-27T21:07:04+00:00",
+  "model_mode": "simulated",
+  "kind": "changes",
+  "changes": 24,
+  "exact_verdict": 1.0,
+  "harmful_blocked": 1.0,
+  "safe_blocked": 0,
+  "rows": [
+    {
+      "id": "h01",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "classification_lowered"
+      ]
+    },
+    {
+      "id": "h02",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "classification_raised",
+        "downstream:classification"
+      ]
+    },
+    {
+      "id": "h03",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "classification_raised",
+        "downstream:classification",
+        "downstream:classification",
+        "downstream:classification"
+      ]
+    },
+    {
+      "id": "h04",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "sla_loosened",
+        "downstream:sla",
+        "downstream:sla",
+        "downstream:sla"
+      ]
+    },
+    {
+      "id": "h05",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "quality_dry_run"
+      ]
+    },
+    {
+      "id": "h06",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "column_removed",
+        "version_not_bumped"
+      ]
+    },
+    {
+      "id": "h07",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "column_renamed"
+      ]
+    },
+    {
+      "id": "h08",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "partition_changed"
+      ]
+    },
+    {
+      "id": "h09",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "instructions_in_metadata"
+      ]
+    },
+    {
+      "id": "h10",
+      "expected": "block",
+      "got": "block",
+      "findings": [
+        "type_changed",
+        "version_not_bumped"
+      ]
+    },
+    {
+      "id": "h11",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "classification_raised"
+      ]
+    },
+    {
+      "id": "h12",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "classification_raised"
+      ]
+    },
+    {
+      "id": "h13",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "quality_loosened"
+      ]
+    },
+    {
+      "id": "h14",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "quality_removed"
+      ]
+    },
+    {
+      "id": "h15",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "sla_loosened"
+      ]
+    },
+    {
+      "id": "h16",
+      "expected": "needs_approval",
+      "got": "needs_approval",
+      "findings": [
+        "quality_loosened"
+      ]
+    },
+    {
+      "id": "h17",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h18",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h19",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h20",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h21",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h22",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h23",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    },
+    {
+      "id": "h24",
+      "expected": "approve",
+      "got": "approve",
+      "findings": []
+    }
+  ],
+  "headline": "24 changes; verdict as expected 100.0%; harmful blocked 100.0%; safe changes blocked by mistake 0 of 8.",
+  "parse_check": [
+    "leads.leads"
+  ]
+}

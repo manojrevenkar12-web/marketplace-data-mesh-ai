@@ -1,0 +1,14 @@
+{
+  "ask_sql": {
+    "sha256": "5fc3fc71476f05a5de0368941f15534fbdc8cb8e0cd85c07d6943dc51ab1e9dd",
+    "version": 1
+  },
+  "review": {
+    "sha256": "bd8239567ea8d0544a39a5d02f5b922a40377cf584cd3054ef0d9ce44aa34d3d",
+    "version": 1
+  },
+  "triage": {
+    "sha256": "e7b78ea14e7440dceac2e237fc4d33b81d6ab8b5fbc08bea5aabf334dcda5be7",
+    "version": 1
+  }
+}

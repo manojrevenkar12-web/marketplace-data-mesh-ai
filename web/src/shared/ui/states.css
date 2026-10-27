@@ -1,0 +1,39 @@
+.skeleton {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-5) 0;
+}
+
+.skeleton-bar {
+  display: block;
+  height: 0.85rem;
+  border-radius: var(--radius-s);
+  background: linear-gradient(90deg, var(--surface-sunk), var(--rule), var(--surface-sunk));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.state {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  padding: var(--s-6) 0;
+  max-width: var(--measure);
+}
+
+.state p {
+  color: var(--ink-2);
+}
+
+.state-error h3 {
+  color: var(--stop);
+}

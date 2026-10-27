@@ -1,0 +1,85 @@
+.eval-scope {
+  color: var(--ink-2);
+}
+
+.eval-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: var(--s-5);
+}
+
+.eval-grid .panel {
+  display: grid;
+  gap: var(--s-4);
+  align-content: start;
+}
+
+.compare {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.compare-label {
+  font-weight: 600;
+}
+
+.compare-bars {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) 4rem;
+  gap: var(--s-2);
+  align-items: center;
+  font-size: var(--step--1);
+}
+
+.bar-name {
+  color: var(--ink-3);
+}
+
+.bar-track {
+  height: var(--s-3);
+  background: var(--surface-sunk);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+}
+
+.bar-us {
+  background: var(--ink);
+}
+
+.bar-base {
+  background: var(--rule-strong);
+}
+
+.bar-value {
+  text-align: right;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-big {
+  font-size: var(--step-1);
+}
+
+.heldout li {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.heldout-set {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}

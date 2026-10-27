@@ -63,6 +63,7 @@ class Review:
     comment_markdown: str
     model: str | None = None
     model_problems: list[str] = field(default_factory=list)
+    cost_usd: float = 0.0
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -114,6 +115,8 @@ class Reviewer:
             old = self.base[product]
             for ch in diff(old, new, self.base.sql.get(product), new_reg.sql.get(product)):
                 self._judge(ch, old, new, new_reg, add)
+            if [q.model_dump() for q in new.quality] != [q.model_dump() for q in old.quality]:
+                self._quality_dry_run(new, add)
             if (
                 any(f.kind in ("column_removed", "column_renamed", "type_changed") and f.product == product for f in findings)
                 and new.version <= old.version
@@ -312,6 +315,32 @@ class Reviewer:
                 c.product,
                 None,
                 f'descriptions contain text aimed at AI assistants: "{flagged[0][:120]}"; descriptions are shown to assistants as data',
+            )
+
+    def _quality_dry_run(self, c: Contract, add: Any) -> None:
+        """Run the proposed quality checks on the recent published partitions: a check that would have
+        quarantined most recent days is a broken check, not a stricter one."""
+        if self.lake is None:
+            return
+        from mesh.quality import run_checks
+
+        days = self.lake.partitions(c.product)[-int(self.cfg["dry_run_days"]) :]
+        counts = [self.lake.row_count(c.product, d) for d in self.lake.partitions(c.product)]
+        failing: dict[str, int] = {}
+        for i, dt in enumerate(days):
+            path = self.lake.partition_dir(c.product, dt) / "part-0.parquet"
+            prior = counts[: len(counts) - len(days) + i]
+            for q in run_checks(c, dt, path, self.lake, prior):
+                if not q.passed and q.severity == "error":
+                    failing[q.check] = failing.get(q.check, 0) + 1
+        for check, n in sorted(failing.items()):
+            add(
+                "block" if n == len(days) else "needs_approval",
+                "quality_dry_run",
+                c.product,
+                None,
+                f"the check {check} would have quarantined {n} of the last {len(days)} partitions",
+                approvers=[c.owner],
             )
 
     def _dry_run(self, product: str, reg: Registry, add: Any) -> None:

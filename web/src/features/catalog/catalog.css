@@ -1,0 +1,240 @@
+.catalog-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-5);
+  padding: var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  align-items: start;
+}
+
+.mesh-map {
+  margin: 0;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mesh-map svg {
+  display: block;
+  max-width: none;
+  overflow: visible;
+}
+
+.today {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+}
+
+.today h2 {
+  font-size: var(--step-1);
+}
+
+.today dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--s-3) var(--s-5);
+}
+
+.today dt {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.today dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.today-note {
+  display: block;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.today-figure {
+  font-size: var(--step-2);
+  font-variation-settings: "wdth" var(--width-wide);
+  font-variant-numeric: tabular-nums;
+  margin-right: var(--s-1);
+}
+
+
+.mesh-map figcaption {
+  margin-top: var(--s-3);
+  color: var(--ink-3);
+  font-size: var(--step--1);
+  max-width: var(--measure);
+}
+
+.map-lane {
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variation-settings: "wdth" var(--width-wide);
+  letter-spacing: 0.02em;
+}
+
+.map-dot {
+  fill: var(--surface);
+  transition: fill var(--dur-fast) var(--ease);
+}
+
+.map-station {
+  cursor: pointer;
+  outline: none;
+}
+
+.map-station:hover .map-dot,
+.map-station:focus-visible .map-dot {
+  fill: var(--surface-sunk);
+}
+
+.map-station:focus-visible .map-name {
+  text-decoration: underline;
+}
+
+.map-station.tone-warn .map-dot {
+  fill: var(--warn-wash);
+}
+
+.map-station.tone-stop .map-dot {
+  fill: var(--stop-wash);
+}
+
+.map-name {
+  font-size: var(--step--1);
+  font-weight: 650;
+  fill: var(--ink);
+  font-variation-settings: "wdth" var(--width-narrow);
+}
+
+.map-status {
+  font-size: var(--step--1);
+  fill: var(--ink-3);
+  font-variation-settings: "wdth" var(--width-narrow);
+}
+
+.tone-warn .map-status {
+  fill: var(--warn);
+  font-weight: 650;
+}
+
+.tone-stop .map-status {
+  fill: var(--stop);
+  font-weight: 650;
+}
+
+.catalog-search {
+  display: grid;
+  gap: var(--s-2);
+  max-width: var(--measure);
+}
+
+.catalog-search label {
+  font-weight: 600;
+}
+
+.catalog-search-row {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.catalog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.catalog-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--s-5);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.catalog-main {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.catalog-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 650;
+  font-size: var(--step-1);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.catalog-name:hover {
+  text-decoration: underline;
+}
+
+.catalog-desc {
+  color: var(--ink-2);
+}
+
+.line-mark {
+  width: var(--s-4);
+  height: var(--track);
+  border-radius: var(--radius-pill);
+  background: var(--ink-3);
+}
+
+.line-listings {
+  background: var(--line-listings);
+}
+
+.line-dealers {
+  background: var(--line-dealers);
+}
+
+.line-leads {
+  background: var(--line-leads);
+}
+
+.line-pricing {
+  background: var(--line-pricing);
+}
+
+.catalog-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--s-2) var(--s-4);
+  align-content: start;
+  font-size: var(--step--1);
+}
+
+.catalog-facts dt {
+  color: var(--ink-3);
+}
+
+.catalog-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.catalog-chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+
+@media (max-width: 720px) {
+  .catalog-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-2);
+  }
+
+  .catalog-search-row {
+    flex-wrap: wrap;
+  }
+}

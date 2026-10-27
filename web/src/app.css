@@ -1,0 +1,122 @@
+.shell {
+  /* the rail's surface runs the full height of long pages */
+  background: linear-gradient(to right, var(--surface) calc(var(--nav) - 1px), var(--rule) calc(var(--nav) - 1px), var(--rule) var(--nav), transparent var(--nav));
+  display: grid;
+  grid-template-columns: var(--nav) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-5) var(--s-4);
+  border-right: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 700;
+  font-variation-settings: "wdth" var(--width-wide);
+}
+
+.brand-mark {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: var(--track) solid var(--line-listings);
+  box-shadow: 0.45rem 0 0 -0.05rem var(--line-leads);
+  margin-right: var(--s-2);
+}
+
+.rail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-1);
+}
+
+.rail a {
+  display: block;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--radius-m);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.rail a:hover {
+  color: var(--ink);
+  background: var(--surface-sunk);
+}
+
+.rail a.active {
+  color: var(--ink);
+  background: var(--surface-sunk);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.who {
+  margin-top: auto;
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--step--1);
+}
+
+.who-name {
+  font-weight: 650;
+}
+
+.who-group {
+  color: var(--ink-3);
+}
+
+.link-button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ask);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.content {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    background: none;
+  }
+
+  .rail {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .rail ul {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .who {
+    margin-top: 0;
+    margin-left: auto;
+  }
+}

@@ -1,0 +1,105 @@
+.chips-row {
+  display: flex;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+
+.dataset-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--s-3) var(--s-5);
+}
+
+.dataset-facts dt {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.dataset-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.dataset-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: var(--s-5);
+  align-items: start;
+}
+
+.dataset-main,
+.dataset-side {
+  display: grid;
+  gap: var(--s-5);
+  min-width: 0;
+}
+
+.dataset-note {
+  margin-top: var(--s-3);
+  color: var(--ink-2);
+}
+
+.dataset-main td .chip {
+  margin-left: var(--s-2);
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.plain-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.checks li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.request-form {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.request-form label {
+  font-weight: 600;
+}
+
+.request-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: var(--s-1);
+}
+
+.request-form legend {
+  font-weight: 600;
+  margin-bottom: var(--s-1);
+}
+
+.request-form .check {
+  display: flex;
+  gap: var(--s-2);
+  align-items: baseline;
+  font-weight: 400;
+}
+
+.form-error {
+  color: var(--stop);
+}
+
+@media (max-width: 1020px) {
+  .dataset-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

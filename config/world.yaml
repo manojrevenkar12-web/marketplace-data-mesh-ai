@@ -1,6 +1,6 @@
 # The simulated marketplace (simulation only: read by mesh.sim and mesh.eval, never by the platform or the AI).
 seed: 24
-start: 2026-07-01            # history window: on-call tickets from these days train the triage classifier
+start: 2026-06-01            # history window: on-call tickets from these days train the triage classifier
 live_from: 2026-08-15        # evaluation window
 end: 2026-09-30
 countries: {DE: 0.46, IT: 0.17, NL: 0.09, BE: 0.08, AT: 0.07, FR: 0.06, ES: 0.04, LU: 0.03}
@@ -26,8 +26,8 @@ fuels: {petrol: 0.44, diesel: 0.3, electric: 0.11, hybrid: 0.13, lpg: 0.02}
 # data/truth/incidents.jsonl. Days are offsets from the window start; "history" incidents happen before
 # live_from and end up as resolved on-call tickets, "live" ones are what the evaluation measures.
 incidents:
-  rate_history: 0.22         # chance per day of one history incident
-  rate_live: 0.30
+  rate_history: 0.4          # chance per day of one history incident
+  rate_live: 0.45
   mix:                       # relative frequency of each kind
     schema_drift: 2
     type_drift: 1.5
