@@ -87,6 +87,11 @@
   outline: none;
 }
 
+.map-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
 .map-station:hover .map-dot,
 .map-station:focus-visible .map-dot {
   fill: var(--surface-sunk);

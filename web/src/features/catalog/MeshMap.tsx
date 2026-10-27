@@ -89,6 +89,14 @@ export function MeshMap({ datasets }: { datasets: Dataset[] }) {
               animate={{ opacity: 1 }}
               transition={reduce ? { duration: 0 } : { delay: m.slow + i * m.stagger, duration: m.base }}
             >
+              {/* the whole station, name included, is one target, whatever the font's metrics */}
+              <rect
+                x={s.x - map.labelHalf}
+                y={s.y - map.station * 2}
+                width={map.labelHalf * 2}
+                height={map.station * 3 + map.labelGap * 2}
+                className="map-hit"
+              />
               <circle
                 cx={s.x}
                 cy={s.y}

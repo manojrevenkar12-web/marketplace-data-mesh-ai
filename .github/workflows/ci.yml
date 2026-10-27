@@ -97,9 +97,9 @@ jobs:
               from airflow.dag_processing.dagbag import DagBag  # Airflow 3.1 and later
           except ImportError:
               from airflow.models.dagbag import DagBag
-          bag = DagBag(dag_folder="dags", include_examples=False)
+          bag = DagBag(dag_folder="dags")  # examples are off through AIRFLOW__CORE__LOAD_EXAMPLES
           assert not bag.import_errors, bag.import_errors
-          dag = bag.get_dag("mesh_daily")
+          dag = bag.dags["mesh_daily"]
           assert dag.get_task("pricing__price_ratings").upstream_task_ids == {"listings__listing_events"}
           print(len(dag.tasks), "tasks")
           PY
@@ -155,7 +155,8 @@ jobs:
           .venv/bin/mesh sim --small > /dev/null
           .venv/bin/mesh train
           .venv/bin/mesh demo --seed-only > /dev/null
-      - working-directory: web
+      - name: Console end to end against the API
+        working-directory: web
         run: |
           npm ci
           npx playwright install --with-deps chromium

@@ -153,11 +153,14 @@ def test_athena_runs_only_checked_queries(platform):
 
 def test_the_generated_dag_follows_the_inputs():
     pytest.importorskip("airflow")
-    from airflow.models import DagBag
+    try:
+        from airflow.dag_processing.dagbag import DagBag  # Airflow 3.1 and later
+    except ImportError:
+        from airflow.models.dagbag import DagBag
 
-    bag = DagBag(dag_folder=str(ROOT / "dags"), include_examples=False)
+    bag = DagBag(dag_folder=str(ROOT / "dags"))
     assert not bag.import_errors
-    dag = bag.get_dag("mesh_daily")
+    dag = bag.dags["mesh_daily"]
     assert dag.get_task("pricing__price_ratings").upstream_task_ids == {"listings__listing_events"}
 
 
